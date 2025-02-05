@@ -1,4 +1,4 @@
-# Group Members
+# Team Members
 
 Dorian Griffin 
 
