@@ -1,0 +1,12 @@
+{% extends "layout.html" %}
+{% block content %}
+<!-- Jumbotron for the welcome message -->
+<div class="jumbotron mt-5">
+    <h1 class="display-4">Welcome to the User Management System!</h1>
+    <p class="lead">Manage users, roles, and access control with ease.</p>
+    <hr class="my-4">
+    <p>Use the navigation bar to create, update, or delete users and manage roles.</p>
+    <!-- Button to create a new user -->
+    <a class="btn btn-primary btn-lg" href="{{ url_for('create_user') }}" role="button">Create User</a>
+</div>
+{% endblock %}

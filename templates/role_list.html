@@ -1,0 +1,10 @@
+{% extends "layout.html" %}
+{% block content %}
+<h2 class="mt-5">Role List</h2>
+<ul class="list-group mt-3">
+    {% for role in roles %}
+    <li class="list-group-item">{{ role }}</li>
+    {% endfor %}
+</ul>
+<a href="{{ url_for('add_role') }}" class="btn btn-primary btn-lg mt-3" role="button">Add Role</a>
+{% endblock %}

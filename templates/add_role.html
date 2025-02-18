@@ -1,0 +1,11 @@
+{% extends "layout.html" %}
+{% block content %}
+<h2 class="mt-5">Add Role</h2>
+<form method="POST" action="">
+    <div class="form-group">
+        <label for="role">Role Name</label>
+        <input type="text" class="form-control" id="role" name="role" required>
+    </div>
+    <button type="submit" class="btn btn-primary">Add Role</button>
+</form>
+{% endblock %}
