@@ -67,8 +67,6 @@ def create_user():
     form = UserForm()
     if form.validate_on_submit():
         try:
-            # Teammate 1: Replace mock user creation logic with database insertion
-            
             new_user = User(email=form.email.data, full_name=form.name.data, status=form.status.data, provider_user_id=None, provider=None)
             db.session.add(new_user)
             db.session.commit()
@@ -81,26 +79,29 @@ def create_user():
 # Route for updating an existing user
 @app.route('/update_user/<int:user_id>', methods=['GET', 'POST'])
 def update_user(user_id):
+    # find instance 
     form = UserForm()
-    user = next((u for u in users if u['id'] == user_id), None)
-    # Teammate 1: Replace mock logic with database query
+    user = User.query.get(user_id)
+
     if user:
         if form.validate_on_submit():
             try:
                 # Teammate 1: Replace mock user update logic with database update
-                user['name'] = form.name.data
-                user['email'] = form.email.data
-                user['role'] = form.role.data
-                user['status'] = form.status.data
+                user.full_name = form.name.data
+                user.email = form.email.data
+                user.role = form.role.data
+                user.status = form.status.data
+                db.session.commit()
                 flash('User updated successfully!', 'success')
                 return redirect(url_for('user_list'))
             except Exception as e:
+                db.session.rollback()
                 flash(f'An error occurred: {str(e)}', 'danger')
         else:
-            form.name.data = user['name']
-            form.email.data = user['email']
-            form.role.data = user['role']
-            form.status.data = user['status']
+            form.name.data = user.full_name
+            form.email.data = user.email
+            form.role.data = user.role
+            form.status.data = user.status
     else:
         flash('User not found!', 'danger')
         return redirect(url_for('user_list'))
