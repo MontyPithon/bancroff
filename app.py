@@ -1,7 +1,18 @@
-from flask import Flask, render_template, redirect, url_for, flash, request
+from flask import Flask, render_template, redirect, url_for, flash, request, session
 from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField, SelectField
 from wtforms.validators import DataRequired, Email
+import msal
+import uuid
+
+    
+
+CLIENT_ID = "043f8a3b-1fb0-4c73-b9f8-8b5c0318e897"              # Replace with your Application (client) IDimport uuid
+CLIENT_SECRET = "99abb30d-8d3b-420d-8001-874ed3d2faf5"      # Replace with your Client Secret
+AUTHORITY = "170bbabd-a2f0-4c90-ad4b-0e8f0f0c4259"  # Replace with your Tenant ID
+REDIRECT_PATH = "/getAToken"               # Must match the registered redirect URI
+SCOPE = ["User.Read"]                      # Adjust scopes as needed for your app
+
 
 # Initialize the Flask application
 app = Flask(__name__)
@@ -136,7 +147,59 @@ def reactivate_user(user_id):
         flash(f'An error occurred: {str(e)}', 'danger')
     return redirect(url_for('user_list'))
 
-# Teammate 2: Add Office365 authentication routes and logic here
+
+@app.route("/login")  #Login Route – Initiate the Authentication Flow
+def login():
+    session["state"] = str(uuid.uuid4())
+    auth_url = _build_auth_url(session["state"])
+    return redirect(auth_url)
+
+
+def _build_auth_url(state): #Build the Authorization URL:
+    msal_app = msal.ConfidentialClientApplication(
+        CLIENT_ID, authority=AUTHORITY, client_credential=CLIENT_SECRET
+    )
+    auth_url = msal_app.get_authorization_request_url(
+        scopes=SCOPE,
+        state=state,
+        redirect_uri=url_for("authorized", _external=True)
+    )
+    return auth_url    
+
+
+@app.route(REDIRECT_PATH) #Callback (Authorized) Route – Process the Token 
+def authorized():
+    # Verify state to mitigate CSRF attacks
+    if request.args.get("state") != session.get("state"):
+        return redirect(url_for("index"))
+
+    # Handle any error returned in the query parameters
+    if "error" in request.args:
+        return f"Authentication error: {request.args.get('error')}"
+
+    # Process the authorization code
+    if "code" in request.args:
+        code = request.args.get("code")
+        msal_app = msal.ConfidentialClientApplication(
+            CLIENT_ID, authority=AUTHORITY, client_credential=CLIENT_SECRET
+        )
+        result = msal_app.acquire_token_by_authorization_code(
+            code,
+            scopes=SCOPE,
+            redirect_uri=url_for("authorized", _external=True)
+        )
+        if "error" in result:
+            return f"Error: {result.get('error')}"
+        # Store user information in the session (e.g., user claims from the ID token)
+        session["user"] = result.get("id_token_claims")
+        return redirect(url_for("index"))
+    return redirect(url_for("index"))
+
+@app.route("/logout") #Logout Route – Clear the User Session
+def logout():
+    session.clear()
+    return redirect(url_for("index"))
+
 
 # Run the Flask application
 if __name__ == '__main__':
