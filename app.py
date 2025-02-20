@@ -5,7 +5,7 @@ from wtforms.validators import DataRequired, Email
 import msal
 import uuid
 from flask_sqlalchemy import SQLAlchemy
-
+from faker import Faker
 
     
 
@@ -24,14 +24,15 @@ app.config['SECRET_KEY'] = 'password'  # Secret key for session management
 app.debug = True
 
 # init database
+app.config['SECRET_KEY'] = 'password'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///bancroff.db'
 db = SQLAlchemy(app)
 
 
 
-# db models
+#db models
 class User(db.Model):
-    __tablename__ = 'users' 
+    __tablename__ = 'users'
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(255), unique=True, nullable=False)
     full_name = db.Column(db.String(255))
@@ -39,6 +40,8 @@ class User(db.Model):
     created_at = db.Column(db.DateTime, default=db.func.current_timestamp(), nullable=False)
     provider_user_id = db.Column(db.String(255))
     provider = db.Column(db.String(30))
+    role_id = db.Column(db.Integer, db.ForeignKey('roles.id'))
+    role = db.relationship('Role', backref=db.backref('users', lazy=True))
 
 class Role(db.Model):
     __tablename__ = 'roles'
@@ -57,19 +60,67 @@ class RolePermission(db.Model):
     role_id = db.Column(db.Integer, db.ForeignKey('roles.id'), primary_key=True)
     permission_id = db.Column(db.Integer, db.ForeignKey('permissions.id'), primary_key=True)
 
-class UserRole(db.Model):
-    __tablename__ = 'user_roles'
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), primary_key=True)
-    role_id = db.Column(db.Integer, db.ForeignKey('roles.id'), primary_key=True)
-
-
 # Define the UserForm for creating and updating users
 class UserForm(FlaskForm):
     name = StringField('Name', validators=[DataRequired()])  # Name field, required
     email = StringField('Email', validators=[DataRequired(), Email()])  # Email field, required and must be a valid email
-    role = SelectField('Role', choices=[('basicuser', 'Basic User'), ('admin', 'Administrator')])  # Role selection
+    role = SelectField('Role', choices=[('basic_user', 'Basic User'), ('admin', 'Administrator')])  # Role selection
     status = SelectField('Status', choices=[('active', 'Active'), ('deactivated', 'Deactivated')])  # Status selection
     submit = SubmitField('Submit')  # Submit button
+
+
+
+
+
+def add_fake_data(num_users=5):
+    fake = Faker()
+    try:
+        
+        roles = [
+            Role(name='admin', description='Administrator role with full permissions'),
+            Role(name='basic_user', description='Regular user role with limited permissions')
+        ]
+        db.session.add_all(roles)
+        db.session.commit()
+
+        permissions = [
+            Permission(name='read', description='Read permission'),
+            Permission(name='write', description='Write permission'),
+            Permission(name='delete', description='Delete permission')
+        ]
+        db.session.add_all(permissions)
+        db.session.commit()
+        
+        role_permissions = [
+            RolePermission(role_id=1, permission_id=1),
+            RolePermission(role_id=1, permission_id=2),
+            RolePermission(role_id=1, permission_id=3),
+            RolePermission(role_id=2, permission_id=1)
+        ]
+        db.session.add_all(role_permissions)
+        db.session.commit()
+
+        for _ in range(num_users):
+            fake_user = User(
+                email=fake.email(),
+                full_name=fake.name(),
+                status=fake.random_element(['active', 'deactivated']),
+                provider_user_id=fake.uuid4(),
+                provider=fake.random_element(['Google', 'Microsoft', 'Yahoo', 'Apple']),
+                role_id=2
+            )
+            db.session.add(fake_user)
+        db.session.commit()
+        print("Fake data added successfully!")
+
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        db.session.rollback()
+
+# create database with fake data
+with app.app_context():
+    db.create_all()
+    add_fake_data()
 
 # Route for the home page
 @app.route('/')
@@ -103,15 +154,14 @@ def update_user(user_id):
     # find instance 
     form = UserForm()
     user = User.query.get(user_id)
-    user_roles_id = UserRole.query.filter_by(user_id=user_id).first()
-
+    
     if user:
         if form.validate_on_submit():
             try:
                 # Teammate 1: Replace mock user update logic with database update
                 user.full_name = form.name.data
                 user.email = form.email.data
-                user.role = form.role.data
+                user.role = Role.query.filter_by(name=form.role.data).first()
                 user.status = form.status.data
                 db.session.commit()
                 flash('User updated successfully!', 'success')
@@ -228,4 +278,4 @@ def logout():
 
 # Run the Flask application
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+    app.run(debug=True, port=50040)
