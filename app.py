@@ -139,7 +139,7 @@ def create_user():
     form = UserForm()
     if form.validate_on_submit():
         try:
-            new_user = User(email=form.email.data, full_name=form.name.data, status=form.status.data, provider_user_id=None, provider=None)
+            new_user = User(email=form.email.data, full_name=form.name.data, status=form.status.data, provider_user_id=None, provider=None, role=Role.query.filter_by(name=form.role.data).first())
             db.session.add(new_user)
             db.session.commit()
             flash('User created successfully!', 'success')
@@ -184,9 +184,9 @@ def update_user(user_id):
 def delete_user(user_id):
     global users
     try:
-        # Teammate 1: Replace mock deletion logic with database deletion
-        
-        users = [u for u in users if u['id'] != user_id]
+        user = User.query.get(user_id)
+        db.session.delete(user)
+        db.session.commit()
         flash('User deleted successfully!', 'success')
     except Exception as e:
         flash(f'An error occurred: {str(e)}', 'danger')
