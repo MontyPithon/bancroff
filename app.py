@@ -4,12 +4,14 @@ from wtforms import StringField, SubmitField, SelectField
 from wtforms.validators import DataRequired, Email
 import msal
 import uuid
+from flask_sqlalchemy import SQLAlchemy
+from faker import Faker
 
     
 
-CLIENT_ID = "043f8a3b-1fb0-4c73-b9f8-8b5c0318e897"              # Replace with your Application (client) IDimport uuid
-CLIENT_SECRET = "99abb30d-8d3b-420d-8001-874ed3d2faf5"      # Replace with your Client Secret
-AUTHORITY = "170bbabd-a2f0-4c90-ad4b-0e8f0f0c4259"  # Replace with your Tenant ID
+CLIENT_ID = "1daa4a2e-7a38-4225-854c-45d232e9ccbf"              # Replace with your Application (client) IDimport uuid
+CLIENT_SECRET = "zjo8Q~N4HOF61PaaHwEOVGwLMFH6vondPFxWPcjN"      # Replace with your Client Secret
+AUTHORITY = "https://login.microsoftonline.com/170bbabd-a2f0-4c90-ad4b-0e8f0f0c4259"  # Replace with your Tenant ID
 REDIRECT_PATH = "/getAToken"               # Must match the registered redirect URI
 SCOPE = ["User.Read"]                      # Adjust scopes as needed for your app
 
@@ -21,26 +23,104 @@ app.config['SECRET_KEY'] = 'password'  # Secret key for session management
 # Enable debug mode for detailed error messages
 app.debug = True
 
-# Set up the SQLite database here
+# init database
+app.config['SECRET_KEY'] = 'password'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///bancroff.db'
+db = SQLAlchemy(app)
 
 
 
+#db models
+class User(db.Model):
+    __tablename__ = 'users'
+    id = db.Column(db.Integer, primary_key=True)
+    email = db.Column(db.String(255), unique=True, nullable=False)
+    full_name = db.Column(db.String(255))
+    status = db.Column(db.String(20), default='active', nullable=False)
+    created_at = db.Column(db.DateTime, default=db.func.current_timestamp(), nullable=False)
+    provider_user_id = db.Column(db.String(255))
+    provider = db.Column(db.String(30))
+    role_id = db.Column(db.Integer, db.ForeignKey('roles.id'))
+    role = db.relationship('Role', backref=db.backref('users', lazy=True))
 
-# Initialize the database and migration tool
+class Role(db.Model):
+    __tablename__ = 'roles'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(50), unique=True, nullable=False)
+    description = db.Column(db.Text)
 
+class Permission(db.Model):
+    __tablename__ = 'permissions'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), unique=True, nullable=False)
+    description = db.Column(db.Text)
 
-# Define the User model for the database (Teammate 1 needs to complete this part)
-
-# Mock data (to be replaced with actual database logic)
-users = []
+class RolePermission(db.Model):
+    __tablename__ = 'role_permissions'
+    role_id = db.Column(db.Integer, db.ForeignKey('roles.id'), primary_key=True)
+    permission_id = db.Column(db.Integer, db.ForeignKey('permissions.id'), primary_key=True)
 
 # Define the UserForm for creating and updating users
 class UserForm(FlaskForm):
     name = StringField('Name', validators=[DataRequired()])  # Name field, required
     email = StringField('Email', validators=[DataRequired(), Email()])  # Email field, required and must be a valid email
-    role = SelectField('Role', choices=[('basicuser', 'Basic User'), ('admin', 'Administrator')])  # Role selection
+    role = SelectField('Role', choices=[('basic_user', 'Basic User'), ('admin', 'Administrator')])  # Role selection
     status = SelectField('Status', choices=[('active', 'Active'), ('deactivated', 'Deactivated')])  # Status selection
     submit = SubmitField('Submit')  # Submit button
+
+
+
+
+
+def add_fake_data(num_users=5):
+    fake = Faker()
+    try:
+        
+        roles = [
+            Role(name='admin', description='Administrator role with full permissions'),
+            Role(name='basic_user', description='Regular user role with limited permissions')
+        ]
+        db.session.add_all(roles)
+        db.session.commit()
+
+        permissions = [
+            Permission(name='read', description='Read permission'),
+            Permission(name='write', description='Write permission'),
+            Permission(name='delete', description='Delete permission')
+        ]
+        db.session.add_all(permissions)
+        db.session.commit()
+        
+        role_permissions = [
+            RolePermission(role_id=1, permission_id=1),
+            RolePermission(role_id=1, permission_id=2),
+            RolePermission(role_id=1, permission_id=3),
+            RolePermission(role_id=2, permission_id=1)
+        ]
+        db.session.add_all(role_permissions)
+        db.session.commit()
+
+        for _ in range(num_users):
+            fake_user = User(
+                email=fake.email(),
+                full_name=fake.name(),
+                status=fake.random_element(['active', 'deactivated']),
+                provider_user_id=fake.uuid4(),
+                provider=fake.random_element(['Google', 'Microsoft', 'Yahoo', 'Apple']),
+                role_id=2
+            )
+            db.session.add(fake_user)
+        db.session.commit()
+        print("Fake data added successfully!")
+
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        db.session.rollback()
+
+# create database with fake data
+with app.app_context():
+    db.create_all()
+    add_fake_data()
 
 # Route for the home page
 @app.route('/')
@@ -50,8 +130,7 @@ def index():
 # Route for displaying the list of users
 @app.route('/users')
 def user_list():
-    # Teammate 1: Replace mock data with database query
-    # users = User.query.all()
+    users = User.query.all()
     return render_template('user_list.html', users=users)
 
 # Route for creating a new user
@@ -60,16 +139,9 @@ def create_user():
     form = UserForm()
     if form.validate_on_submit():
         try:
-            # Teammate 1: Replace mock user creation logic with database insertion
-            
-            new_user = {
-                'id': len(users) + 1,
-                'name': form.name.data,
-                'email': form.email.data,
-                'role': form.role.data,
-                'status': form.status.data
-            }
-            users.append(new_user)
+            new_user = User(email=form.email.data, full_name=form.name.data, status=form.status.data, provider_user_id=None, provider=None, role=Role.query.filter_by(name=form.role.data).first())
+            db.session.add(new_user)
+            db.session.commit()
             flash('User created successfully!', 'success')
             return redirect(url_for('user_list'))
         except Exception as e:
@@ -79,26 +151,29 @@ def create_user():
 # Route for updating an existing user
 @app.route('/update_user/<int:user_id>', methods=['GET', 'POST'])
 def update_user(user_id):
+    # find instance 
     form = UserForm()
-    user = next((u for u in users if u['id'] == user_id), None)
-    # Teammate 1: Replace mock logic with database query
+    user = User.query.get(user_id)
+    
     if user:
         if form.validate_on_submit():
             try:
                 # Teammate 1: Replace mock user update logic with database update
-                user['name'] = form.name.data
-                user['email'] = form.email.data
-                user['role'] = form.role.data
-                user['status'] = form.status.data
+                user.full_name = form.name.data
+                user.email = form.email.data
+                user.role = Role.query.filter_by(name=form.role.data).first()
+                user.status = form.status.data
+                db.session.commit()
                 flash('User updated successfully!', 'success')
                 return redirect(url_for('user_list'))
             except Exception as e:
+                db.session.rollback()
                 flash(f'An error occurred: {str(e)}', 'danger')
         else:
-            form.name.data = user['name']
-            form.email.data = user['email']
-            form.role.data = user['role']
-            form.status.data = user['status']
+            form.name.data = user.full_name
+            form.email.data = user.email
+            form.role.data = user.role
+            form.status.data = user.status
     else:
         flash('User not found!', 'danger')
         return redirect(url_for('user_list'))
@@ -109,9 +184,9 @@ def update_user(user_id):
 def delete_user(user_id):
     global users
     try:
-        # Teammate 1: Replace mock deletion logic with database deletion
-        
-        users = [u for u in users if u['id'] != user_id]
+        user = User.query.get(user_id)
+        db.session.delete(user)
+        db.session.commit()
         flash('User deleted successfully!', 'success')
     except Exception as e:
         flash(f'An error occurred: {str(e)}', 'danger')
@@ -121,10 +196,10 @@ def delete_user(user_id):
 @app.route('/deactivate_user/<int:user_id>', methods=['POST'])
 def deactivate_user(user_id):
     try:
-        user = next((u for u in users if u['id'] == user_id), None)
-        # Teammate 1: Replace mock logic with database query and update
+        user = User.query.get(user_id)
         if user:
-            user['status'] = 'deactivated'
+            user.status = 'deactivated'
+            db.session.commit()
             flash('User deactivated successfully!', 'success')
         else:
             flash('User not found!', 'danger')
@@ -136,10 +211,11 @@ def deactivate_user(user_id):
 @app.route('/reactivate_user/<int:user_id>', methods=['POST'])
 def reactivate_user(user_id):
     try:
-        user = next((u for u in users if u['id'] == user_id), None)
+        user = User.query.get(user_id)
         # Teammate 1: Replace mock logic with database query and update
         if user:
-            user['status'] = 'active'
+            user.status = 'active'
+            db.session.commit()
             flash('User reactivated successfully!', 'success')
         else:
             flash('User not found!', 'danger')
@@ -203,4 +279,4 @@ def logout():
 
 # Run the Flask application
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True, port=50040)
