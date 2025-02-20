@@ -29,7 +29,7 @@ db = SQLAlchemy(app)
 
 
 
-# user model for database
+# db models
 class User(db.Model):
     __tablename__ = 'users' 
     id = db.Column(db.Integer, primary_key=True)
@@ -40,6 +40,27 @@ class User(db.Model):
     provider_user_id = db.Column(db.String(255))
     provider = db.Column(db.String(30))
 
+class Role(db.Model):
+    __tablename__ = 'roles'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(50), unique=True, nullable=False)
+    description = db.Column(db.Text)
+
+class Permission(db.Model):
+    __tablename__ = 'permissions'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), unique=True, nullable=False)
+    description = db.Column(db.Text)
+
+class RolePermission(db.Model):
+    __tablename__ = 'role_permissions'
+    role_id = db.Column(db.Integer, db.ForeignKey('roles.id'), primary_key=True)
+    permission_id = db.Column(db.Integer, db.ForeignKey('permissions.id'), primary_key=True)
+
+class UserRole(db.Model):
+    __tablename__ = 'user_roles'
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), primary_key=True)
+    role_id = db.Column(db.Integer, db.ForeignKey('roles.id'), primary_key=True)
 
 
 # Define the UserForm for creating and updating users
@@ -82,6 +103,7 @@ def update_user(user_id):
     # find instance 
     form = UserForm()
     user = User.query.get(user_id)
+    user_roles_id = UserRole.query.filter_by(user_id=user_id).first()
 
     if user:
         if form.validate_on_submit():
