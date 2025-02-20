@@ -4,12 +4,14 @@ from wtforms import StringField, SubmitField, SelectField
 from wtforms.validators import DataRequired, Email
 import msal
 import uuid
+from flask_sqlalchemy import SQLAlchemy
+from flask_migrate import Migrate
 
     
 
-CLIENT_ID = "043f8a3b-1fb0-4c73-b9f8-8b5c0318e897"              # Replace with your Application (client) IDimport uuid
-CLIENT_SECRET = "99abb30d-8d3b-420d-8001-874ed3d2faf5"      # Replace with your Client Secret
-AUTHORITY = "170bbabd-a2f0-4c90-ad4b-0e8f0f0c4259"  # Replace with your Tenant ID
+CLIENT_ID = "1daa4a2e-7a38-4225-854c-45d232e9ccbf"              # Replace with your Application (client) IDimport uuid
+CLIENT_SECRET = "zjo8Q~N4HOF61PaaHwEOVGwLMFH6vondPFxWPcjN"      # Replace with your Client Secret
+AUTHORITY = "https://login.microsoftonline.com/170bbabd-a2f0-4c90-ad4b-0e8f0f0c4259"  # Replace with your Tenant ID
 REDIRECT_PATH = "/getAToken"               # Must match the registered redirect URI
 SCOPE = ["User.Read"]                      # Adjust scopes as needed for your app
 
@@ -21,18 +23,24 @@ app.config['SECRET_KEY'] = 'password'  # Secret key for session management
 # Enable debug mode for detailed error messages
 app.debug = True
 
-# Set up the SQLite database here
+# init database
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///bancroff.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+db = SQLAlchemy(app)
+migrate = Migrate(app, db)
+
+# user model for database
+class User(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    email = db.Column(db.String(255), unique=True, nullable=False)
+    full_name = db.Column(db.String(255))
+    status = db.Column(db.String(20), default='active', nullable=False)
+    created_at = db.Column(db.DateTime, default=db.func.current_timestamp(), nullable=False)
+    provider_user_id = db.Column(db.String(255))
+    provider = db.Column(db.String(30))
 
 
-
-
-# Initialize the database and migration tool
-
-
-# Define the User model for the database (Teammate 1 needs to complete this part)
-
-# Mock data (to be replaced with actual database logic)
-users = []
 
 # Define the UserForm for creating and updating users
 class UserForm(FlaskForm):
@@ -51,7 +59,7 @@ def index():
 @app.route('/users')
 def user_list():
     # Teammate 1: Replace mock data with database query
-    # users = User.query.all()
+    users = User.query.all()
     return render_template('user_list.html', users=users)
 
 # Route for creating a new user
@@ -203,4 +211,4 @@ def logout():
 
 # Run the Flask application
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True, port=5000)
