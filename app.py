@@ -5,7 +5,7 @@ from wtforms.validators import DataRequired, Email
 import msal
 import uuid
 from flask_sqlalchemy import SQLAlchemy
-from flask_migrate import Migrate
+
 
     
 
@@ -25,13 +25,13 @@ app.debug = True
 
 # init database
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///bancroff.db'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-
 db = SQLAlchemy(app)
-migrate = Migrate(app, db)
+
+
 
 # user model for database
 class User(db.Model):
+    __tablename__ = 'users' 
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(255), unique=True, nullable=False)
     full_name = db.Column(db.String(255))
@@ -58,7 +58,6 @@ def index():
 # Route for displaying the list of users
 @app.route('/users')
 def user_list():
-    # Teammate 1: Replace mock data with database query
     users = User.query.all()
     return render_template('user_list.html', users=users)
 
@@ -70,14 +69,9 @@ def create_user():
         try:
             # Teammate 1: Replace mock user creation logic with database insertion
             
-            new_user = {
-                'id': len(users) + 1,
-                'name': form.name.data,
-                'email': form.email.data,
-                'role': form.role.data,
-                'status': form.status.data
-            }
-            users.append(new_user)
+            new_user = User(email=form.email.data, full_name=form.name.data, status=form.status.data, provider_user_id=None, provider=None)
+            db.session.add(new_user)
+            db.session.commit()
             flash('User created successfully!', 'success')
             return redirect(url_for('user_list'))
         except Exception as e:
