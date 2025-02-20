@@ -196,10 +196,10 @@ def delete_user(user_id):
 @app.route('/deactivate_user/<int:user_id>', methods=['POST'])
 def deactivate_user(user_id):
     try:
-        user = next((u for u in users if u['id'] == user_id), None)
-        # Teammate 1: Replace mock logic with database query and update
+        user = User.query.get(user_id)
         if user:
-            user['status'] = 'deactivated'
+            user.status = 'deactivated'
+            db.session.commit()
             flash('User deactivated successfully!', 'success')
         else:
             flash('User not found!', 'danger')
@@ -211,10 +211,11 @@ def deactivate_user(user_id):
 @app.route('/reactivate_user/<int:user_id>', methods=['POST'])
 def reactivate_user(user_id):
     try:
-        user = next((u for u in users if u['id'] == user_id), None)
+        user = User.query.get(user_id)
         # Teammate 1: Replace mock logic with database query and update
         if user:
-            user['status'] = 'active'
+            user.status = 'active'
+            db.session.commit()
             flash('User reactivated successfully!', 'success')
         else:
             flash('User not found!', 'danger')
