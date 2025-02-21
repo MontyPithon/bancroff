@@ -1,206 +1,175 @@
-from flask import Flask, render_template, redirect, url_for, flash, request, session
-from flask_wtf import FlaskForm
-from wtforms import StringField, SubmitField, SelectField
-from wtforms.validators import DataRequired, Email
+from flask import Flask, render_template, redirect, url_for, flash, request, session, abort
+from flask_sqlalchemy import SQLAlchemy
+from functools import wraps
 import msal
 import uuid
+import os
 
-    
-#AT
-CLIENT_ID = "043f8a3b-1fb0-4c73-b9f8-8b5c0318e897"              # Replace with your Application (client) IDimport uuid
-CLIENT_SECRET = "99abb30d-8d3b-420d-8001-874ed3d2faf5"      # Replace with your Client Secret
-AUTHORITY = "170bbabd-a2f0-4c90-ad4b-0e8f0f0c4259"  # Replace with your Tenant ID
-REDIRECT_PATH = "/getAToken"               # Must match the registered redirect URI
-SCOPE = ["User.Read"]                      # Adjust scopes as needed for your app
+# Microsoft Authentication Config
+CLIENT_ID = "your-client-id"
+CLIENT_SECRET = "your-client-secret"
+AUTHORITY = "https://login.microsoftonline.com/your-tenant-id"
+REDIRECT_PATH = "/getAToken"
+SCOPE = ["User.Read"]
 
-
-# Initialize the Flask application
+# Initialize Flask app
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'password'  # Secret key for session management
+app.config['SECRET_KEY'] = 'your-secret-key'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///bancroff.db'
 
-# Enable debug mode for detailed error messages
-app.debug = True
+# Ensure the database file exists and is accessible
+if not os.path.exists('instance'):
+    os.makedirs('instance')
 
-# Set up the SQLite database here
+with app.app_context():
+    db = SQLAlchemy(app)
+    db.create_all()
 
+# Database Models
+class User(db.Model):
+    """User model representing registered users."""
+    id = db.Column(db.Integer, primary_key=True)
+    email = db.Column(db.String(255), unique=True, nullable=False)
+    full_name = db.Column(db.String(255))
+    status = db.Column(db.String(20), default='active', nullable=False)
+    created_at = db.Column(db.DateTime, default=db.func.current_timestamp(), nullable=False)
+    provider_user_id = db.Column(db.String(255))
+    provider = db.Column(db.String(30))
+    role_id = db.Column(db.Integer, db.ForeignKey('roles.id'))
+    role = db.relationship('Role', backref=db.backref('users', lazy=True))
 
+class Role(db.Model):
+    """Role model representing different user roles."""
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(50), unique=True, nullable=False)
+    description = db.Column(db.Text)
 
+class Permission(db.Model):
+    """Permission model defining specific actions users can perform."""
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), unique=True, nullable=False)
+    description = db.Column(db.Text)
 
-# Initialize the database and migration tool
+class RolePermission(db.Model):
+    """Many-to-Many relationship between roles and permissions."""
+    role_id = db.Column(db.Integer, db.ForeignKey('roles.id'), primary_key=True)
+    permission_id = db.Column(db.Integer, db.ForeignKey('permissions.id'), primary_key=True)
 
+class AuditLog(db.Model):
+    """Audit log model to track system actions."""
+    id = db.Column(db.Integer, primary_key=True)
+    action = db.Column(db.String(255), nullable=False)
+    user_email = db.Column(db.String(255), nullable=False)
+    timestamp = db.Column(db.DateTime, default=db.func.current_timestamp())
 
-# Define the User model for the database (Teammate 1 needs to complete this part)
+# Permission Check
+def has_permission(permission_name):
+    """Check if the logged-in user has a specific permission."""
+    user_id = session.get("user_id")
+    if not user_id:
+        flash("Session expired or invalid. Please log in again.", "danger")
+        return False
 
-# Mock data (to be replaced with actual database logic)
-users = []
+    user = User.query.get(user_id)
+    if not user:
+        flash("User not found. Contact support.", "danger")
+        return False
 
-# Define the UserForm for creating and updating users
-class UserForm(FlaskForm):
-    name = StringField('Name', validators=[DataRequired()])  # Name field, required
-    email = StringField('Email', validators=[DataRequired(), Email()])  # Email field, required and must be a valid email
-    role = SelectField('Role', choices=[('basicuser', 'Basic User'), ('admin', 'Administrator')])  # Role selection
-    status = SelectField('Status', choices=[('active', 'Active'), ('deactivated', 'Deactivated')])  # Status selection
-    submit = SubmitField('Submit')  # Submit button
+    result = db.session.execute("""
+        SELECT COUNT(*) FROM role_permissions rp
+        JOIN permissions p ON rp.permission_id = p.id
+        WHERE rp.role_id = :role_id AND p.name = :permission_name
+    """, {"role_id": user.role_id, "permission_name": permission_name}).fetchone()
+    
+    return result[0] > 0
 
-# Route for the home page
+# Decorators for Access Control
+def permission_required(permission_name):
+    """Decorator to enforce permission-based access control."""
+    def decorator(f):
+        @wraps(f)
+        def wrapped_function(*args, **kwargs):
+            if not has_permission(permission_name):
+                flash("You do not have the required permission.", "danger")
+                return redirect(url_for("index"))
+            return f(*args, **kwargs)
+        return wrapped_function
+    return decorator
+
+# Log Actions
+def log_action(action, user_email):
+    """Log security and administrative actions with error handling."""
+    try:
+        new_log = AuditLog(action=action, user_email=user_email)
+        db.session.add(new_log)
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Error logging action: {e}", "danger")
+
+# Routes
 @app.route('/')
 def index():
+    """Home page route."""
     return render_template('index.html')
 
-# Route for displaying the list of users
 @app.route('/users')
+@permission_required("view_users")
 def user_list():
-    # Teammate 1: Replace mock data with database query
-    # users = User.query.all()
+    """Route to display a list of all users."""
+    users = User.query.all()
     return render_template('user_list.html', users=users)
 
-# Route for creating a new user
-@app.route('/create_user', methods=['GET', 'POST'])
-def create_user():
-    form = UserForm()
-    if form.validate_on_submit():
-        try:
-            # Teammate 1: Replace mock user creation logic with database insertion
-            
-            new_user = {
-                'id': len(users) + 1,
-                'name': form.name.data,
-                'email': form.email.data,
-                'role': form.role.data,
-                'status': form.status.data
-            }
-            users.append(new_user)
-            flash('User created successfully!', 'success')
-            return redirect(url_for('user_list'))
-        except Exception as e:
-            flash(f'An error occurred: {str(e)}', 'danger')
-    return render_template('create_user.html', form=form)
-
-# Route for updating an existing user
-@app.route('/update_user/<int:user_id>', methods=['GET', 'POST'])
-def update_user(user_id):
-    form = UserForm()
-    user = next((u for u in users if u['id'] == user_id), None)
-    # Teammate 1: Replace mock logic with database query
-    if user:
-        if form.validate_on_submit():
-            try:
-                # Teammate 1: Replace mock user update logic with database update
-                user['name'] = form.name.data
-                user['email'] = form.email.data
-                user['role'] = form.role.data
-                user['status'] = form.status.data
-                flash('User updated successfully!', 'success')
-                return redirect(url_for('user_list'))
-            except Exception as e:
-                flash(f'An error occurred: {str(e)}', 'danger')
-        else:
-            form.name.data = user['name']
-            form.email.data = user['email']
-            form.role.data = user['role']
-            form.status.data = user['status']
-    else:
-        flash('User not found!', 'danger')
-        return redirect(url_for('user_list'))
-    return render_template('update_user.html', form=form)
-
-# Route for deleting a user
-@app.route('/delete_user/<int:user_id>', methods=['POST'])
-def delete_user(user_id):
-    global users
-    try:
-        # Teammate 1: Replace mock deletion logic with database deletion
+@app.route("/register", methods=["GET", "POST"])
+def register():
+    """Route to allow new users to register and be assigned a default role."""
+    if request.method == "POST":
+        email = request.form.get("email").lower()
+        full_name = request.form.get("full_name")
+        existing_user = User.query.filter_by(email=email).first()
         
-        users = [u for u in users if u['id'] != user_id]
-        flash('User deleted successfully!', 'success')
-    except Exception as e:
-        flash(f'An error occurred: {str(e)}', 'danger')
-    return redirect(url_for('user_list'))
+        if existing_user:
+            flash("Email already registered. Please log in.", "danger")
+            return redirect(url_for("login"))
+        
+        basic_role = Role.query.filter_by(name="BasicUser").first()
+        if not basic_role:
+            flash("Error: Default role 'BasicUser' not found. Initializing now.", "warning")
+            basic_role = Role(name="BasicUser", description="Default user role")
+            db.session.add(basic_role)
+            db.session.commit()
+        
+        new_user = User(email=email, full_name=full_name, role=basic_role)
+        
+        db.session.add(new_user)
+        db.session.commit()
+        flash("Registration successful! Please log in.", "success")
+        return redirect(url_for("login"))
 
-# Route for deactivating a user
-@app.route('/deactivate_user/<int:user_id>', methods=['POST'])
-def deactivate_user(user_id):
-    try:
-        user = next((u for u in users if u['id'] == user_id), None)
-        # Teammate 1: Replace mock logic with database query and update
-        if user:
-            user['status'] = 'deactivated'
-            flash('User deactivated successfully!', 'success')
-        else:
-            flash('User not found!', 'danger')
-    except Exception as e:
-        flash(f'An error occurred: {str(e)}', 'danger')
-    return redirect(url_for('user_list'))
+    return render_template("register.html")
 
-# Route for reactivating a user
-@app.route('/reactivate_user/<int:user_id>', methods=['POST'])
-def reactivate_user(user_id):
-    try:
-        user = next((u for u in users if u['id'] == user_id), None)
-        # Teammate 1: Replace mock logic with database query and update
-        if user:
-            user['status'] = 'active'
-            flash('User reactivated successfully!', 'success')
-        else:
-            flash('User not found!', 'danger')
-    except Exception as e:
-        flash(f'An error occurred: {str(e)}', 'danger')
-    return redirect(url_for('user_list'))
-
-# Teammate 2: Add Office365 authentication routes and logic here
-#AT
-@app.route("/login")  #Login Route – Initiate the Authentication Flow
+@app.route("/login", methods=["GET", "POST"])
 def login():
-    session["state"] = str(uuid.uuid4())
-    auth_url = _build_auth_url(session["state"])
-    return redirect(auth_url)
-
-#AT
-def _build_auth_url(state): #Build the Authorization URL:
-    msal_app = msal.ConfidentialClientApplication(
-        CLIENT_ID, authority=AUTHORITY, client_credential=CLIENT_SECRET
-    )
-    auth_url = msal_app.get_authorization_request_url(
-        scopes=SCOPE,
-        state=state,
-        redirect_uri=url_for("authorized", _external=True)
-    )
-    return auth_url    
-
-#AT
-@app.route(REDIRECT_PATH) #Callback (Authorized) Route – Process the Token 
-def authorized():
-    # Verify state to mitigate CSRF attacks
-    if request.args.get("state") != session.get("state"):
+    """Login route to authenticate users."""
+    if request.method == "POST":
+        email = request.form.get("email").lower()
+        user = User.query.filter_by(email=email).first()
+        if not user:
+            flash("Invalid credentials.", "danger")
+            return redirect(url_for("login"))
+        session["user_id"] = user.id
+        session["role"] = user.role.name
+        session["status"] = user.status
+        flash("Login successful!", "success")
         return redirect(url_for("index"))
+    return render_template("login.html")
 
-    # Handle any error returned in the query parameters
-    if "error" in request.args:
-        return f"Authentication error: {request.args.get('error')}"
-
-    # Process the authorization code
-    if "code" in request.args:
-        code = request.args.get("code")
-        msal_app = msal.ConfidentialClientApplication(
-            CLIENT_ID, authority=AUTHORITY, client_credential=CLIENT_SECRET
-        )
-        result = msal_app.acquire_token_by_authorization_code(
-            code,
-            scopes=SCOPE,
-            redirect_uri=url_for("authorized", _external=True)
-        )
-        if "error" in result:
-            return f"Error: {result.get('error')}"
-        # Store user information in the session (e.g., user claims from the ID token)
-        session["user"] = result.get("id_token_claims")
-        return redirect(url_for("index"))
-    return redirect(url_for("index"))
-#AT
-@app.route("/logout") #Logout Route – Clear the User Session
+@app.route("/logout")
 def logout():
+    """Route to handle user logout and clear session."""
     session.clear()
     return redirect(url_for("index"))
 
-# Run the Flask application
+# Run Flask Application
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True, port=50010)
