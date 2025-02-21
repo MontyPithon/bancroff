@@ -7,6 +7,7 @@ import uuid
 from flask_sqlalchemy import SQLAlchemy
 from faker import Faker
 from functools import wraps
+import os
     
 
 CLIENT_ID = "1daa4a2e-7a38-4225-854c-45d232e9ccbf"              # Replace with your Application (client) IDimport uuid
@@ -110,9 +111,11 @@ def add_fake_data(num_users=5):
         db.session.rollback()
 
 # create database with fake data
-with app.app_context():
-    db.create_all()
-    add_fake_data()
+if not os.path.exists('./instance/bancroff.db'):
+    with app.app_context():
+        print('test')
+        db.create_all()
+        add_fake_data()
 
 def admin_required(f):
     @wraps(f)
