@@ -6,7 +6,7 @@ import msal
 import uuid
 from flask_sqlalchemy import SQLAlchemy
 from faker import Faker
-
+from functools import wraps
     
 
 CLIENT_ID = "1daa4a2e-7a38-4225-854c-45d232e9ccbf"              # Replace with your Application (client) IDimport uuid
@@ -31,6 +31,7 @@ db = SQLAlchemy(app)
 
 
 #db models
+#TODO: possibly remove provider_user_id and provider and add in future if needed
 class User(db.Model):
     __tablename__ = 'users'
     id = db.Column(db.Integer, primary_key=True)
@@ -122,19 +123,42 @@ with app.app_context():
     db.create_all()
     add_fake_data()
 
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if session.get("role") != "admin":
+            flash("You do not have permission to access this page.", "danger")
+            return redirect(url_for("index"))
+        return f(*args, **kwargs)
+    return decorated_function
+
+def active_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if session.get("status") == "deactivated":
+            flash("Your account is deactivated. Please contact the administrator.", "danger")
+            return redirect(url_for("index"))
+        return f(*args, **kwargs)
+    return decorated_function
+
 # Route for the home page
 @app.route('/')
 def index():
+    print(session) 
     return render_template('index.html')
 
 # Route for displaying the list of users
 @app.route('/users')
+@admin_required
+@active_required
 def user_list():
     users = User.query.all()
     return render_template('user_list.html', users=users)
 
 # Route for creating a new user
 @app.route('/create_user', methods=['GET', 'POST'])
+@admin_required
+@active_required
 def create_user():
     form = UserForm()
     if form.validate_on_submit():
@@ -150,6 +174,8 @@ def create_user():
 
 # Route for updating an existing user
 @app.route('/update_user/<int:user_id>', methods=['GET', 'POST'])
+@admin_required
+@active_required
 def update_user(user_id):
     # find instance 
     form = UserForm()
@@ -181,6 +207,8 @@ def update_user(user_id):
 
 # Route for deleting a user
 @app.route('/delete_user/<int:user_id>', methods=['POST'])
+@admin_required
+@active_required
 def delete_user(user_id):
     global users
     try:
@@ -194,6 +222,8 @@ def delete_user(user_id):
 
 # Route for deactivating a user
 @app.route('/deactivate_user/<int:user_id>', methods=['POST'])
+@admin_required
+@active_required
 def deactivate_user(user_id):
     try:
         user = User.query.get(user_id)
@@ -209,6 +239,8 @@ def deactivate_user(user_id):
 
 # Route for reactivating a user
 @app.route('/reactivate_user/<int:user_id>', methods=['POST'])
+@admin_required
+@active_required
 def reactivate_user(user_id):
     try:
         user = User.query.get(user_id)
@@ -268,7 +300,22 @@ def authorized():
             return f"Error: {result.get('error')}"
         # Store user information in the session (e.g., user claims from the ID token)
         session["user"] = result.get("id_token_claims")
+        
+        user_email = session["user"]["preferred_username"].lower()
+        print(user_email)
+        user = User.query.filter_by(email=user_email).first()
+        
+        #first sign up logic
+        print(session["user"])
+
+        if user:
+            session["role"] = user.role.name
+            session["status"] = user.status 
+        else:
+            flash("User not found in the database.", "danger")
+            return redirect(url_for("index"))
         return redirect(url_for("index"))
+    
     return redirect(url_for("index"))
 
 @app.route("/logout") #Logout Route – Clear the User Session
