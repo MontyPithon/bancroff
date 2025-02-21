@@ -103,6 +103,7 @@ def add_fake_data(num_users=5):
                 role_id=2
             )
             db.session.add(fake_user)
+        
         db.session.commit()
         print("Fake data added successfully!")
 
@@ -161,8 +162,15 @@ def create_user():
     form = UserForm()
     if form.validate_on_submit():
         try:
-            basic_user_role = Role.query.filter_by(name='basic_user').first()
-            new_user = User(email=form.email.data, full_name=form.name.data, status=form.status.data, provider_user_id=None, provider=None, role=basic_user_role)
+            selected_role = Role.query.filter_by(name=form.role.data).first()
+            new_user = User(
+                email=form.email.data,
+                full_name=form.name.data,
+                status=form.status.data,
+                provider_user_id=None,
+                provider=None,
+                role=selected_role
+            )
             db.session.add(new_user)
             db.session.commit()
             flash('User created successfully!', 'success')
@@ -170,7 +178,6 @@ def create_user():
         except Exception as e:
             flash(f'An error occurred: {str(e)}', 'danger')
     return render_template('create_user.html', form=form)
-
 # Route for updating an existing user
 @app.route('/update_user/<int:user_id>', methods=['GET', 'POST'])
 @admin_required
@@ -307,18 +314,23 @@ def authorized():
 
         # Add user to database if not already present
         user_info = session["user"]
-        user = User.query.filter_by(email=user_info["preferred_username"]).first()
+        user = User.query.filter_by(email=user_info["preferred_username"].lower()).first()
         if not user:
-            basic_user_role = Role.query.filter_by(name='basic_user').first()
+            admin_user_role = Role.query.filter_by(name='admin').first()
             new_user = User(
-                email=user_info["preferred_username"],
+                email=user_info["preferred_username"].lower(),
                 full_name=user_info["name"],
                 provider_user_id=user_info["oid"],
                 provider="Microsoft",
-                role=basic_user_role
+                role=admin_user_role
             )
             db.session.add(new_user)
             db.session.commit()
+            session["role"] = "admin" #default everyone admin
+            session["status"] = "active"
+        else:
+            session["role"] = user.role.name
+            session["status"] = user.status
 
         return redirect(url_for("index"))
     
@@ -331,4 +343,4 @@ def logout():
 
 # Run the Flask application
 if __name__ == '__main__':
-    app.run(debug=True, port=50040)
+    app.run(debug=True, port=50010)
