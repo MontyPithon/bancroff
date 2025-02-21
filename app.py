@@ -7,14 +7,11 @@ import uuid
 from flask_sqlalchemy import SQLAlchemy
 from faker import Faker
 
-    
-
-CLIENT_ID = "1daa4a2e-7a38-4225-854c-45d232e9ccbf"              # Replace with your Application (client) IDimport uuid
-CLIENT_SECRET = "zjo8Q~N4HOF61PaaHwEOVGwLMFH6vondPFxWPcjN"      # Replace with your Client Secret
+CLIENT_ID = "1daa4a2e-7a38-4225-854c-45d232e9ccbf"  # Replace with your Application (client) ID
+CLIENT_SECRET = "zjo8Q~N4HOF61PaaHwEOVGwLMFH6vondPFxWPcjN"  # Replace with your Client Secret
 AUTHORITY = "https://login.microsoftonline.com/170bbabd-a2f0-4c90-ad4b-0e8f0f0c4259"  # Replace with your Tenant ID
-REDIRECT_PATH = "/getAToken"               # Must match the registered redirect URI
-SCOPE = ["User.Read"]                      # Adjust scopes as needed for your app
-
+REDIRECT_PATH = "/getAToken"  # Must match the registered redirect URI
+SCOPE = ["User.Read"]  # Adjust scopes as needed for your app
 
 # Initialize the Flask application
 app = Flask(__name__)
@@ -24,11 +21,8 @@ app.config['SECRET_KEY'] = 'password'  # Secret key for session management
 app.debug = True
 
 # init database
-app.config['SECRET_KEY'] = 'password'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///bancroff.db'
 db = SQLAlchemy(app)
-
-
 
 #db models
 class User(db.Model):
@@ -68,14 +62,9 @@ class UserForm(FlaskForm):
     status = SelectField('Status', choices=[('active', 'Active'), ('deactivated', 'Deactivated')])  # Status selection
     submit = SubmitField('Submit')  # Submit button
 
-
-
-
-
 def add_fake_data(num_users=5):
     fake = Faker()
     try:
-        
         roles = [
             Role(name='admin', description='Administrator role with full permissions'),
             Role(name='basic_user', description='Regular user role with limited permissions')
@@ -130,16 +119,21 @@ def index():
 # Route for displaying the list of users
 @app.route('/users')
 def user_list():
+    if not session.get("user"):
+        return redirect(url_for("login"))
     users = User.query.all()
     return render_template('user_list.html', users=users)
 
 # Route for creating a new user
 @app.route('/create_user', methods=['GET', 'POST'])
 def create_user():
+    if not session.get("user"):
+        return redirect(url_for("login"))
     form = UserForm()
     if form.validate_on_submit():
         try:
-            new_user = User(email=form.email.data, full_name=form.name.data, status=form.status.data, provider_user_id=None, provider=None, role=Role.query.filter_by(name=form.role.data).first())
+            basic_user_role = Role.query.filter_by(name='basic_user').first()
+            new_user = User(email=form.email.data, full_name=form.name.data, status=form.status.data, provider_user_id=None, provider=None, role=basic_user_role)
             db.session.add(new_user)
             db.session.commit()
             flash('User created successfully!', 'success')
@@ -151,14 +145,14 @@ def create_user():
 # Route for updating an existing user
 @app.route('/update_user/<int:user_id>', methods=['GET', 'POST'])
 def update_user(user_id):
-    # find instance 
+    if not session.get("user"):
+        return redirect(url_for("login"))
     form = UserForm()
     user = User.query.get(user_id)
     
     if user:
         if form.validate_on_submit():
             try:
-                # Teammate 1: Replace mock user update logic with database update
                 user.full_name = form.name.data
                 user.email = form.email.data
                 user.role = Role.query.filter_by(name=form.role.data).first()
@@ -172,17 +166,18 @@ def update_user(user_id):
         else:
             form.name.data = user.full_name
             form.email.data = user.email
-            form.role.data = user.role
+            form.role.data = user.role.name
             form.status.data = user.status
     else:
         flash('User not found!', 'danger')
         return redirect(url_for('user_list'))
-    return render_template('update_user.html', form=form)
+    return render_template('update_user.html', form=form, user=user)
 
 # Route for deleting a user
 @app.route('/delete_user/<int:user_id>', methods=['POST'])
 def delete_user(user_id):
-    global users
+    if not session.get("user"):
+        return redirect(url_for("login"))
     try:
         user = User.query.get(user_id)
         db.session.delete(user)
@@ -195,6 +190,8 @@ def delete_user(user_id):
 # Route for deactivating a user
 @app.route('/deactivate_user/<int:user_id>', methods=['POST'])
 def deactivate_user(user_id):
+    if not session.get("user"):
+        return redirect(url_for("login"))
     try:
         user = User.query.get(user_id)
         if user:
@@ -210,9 +207,10 @@ def deactivate_user(user_id):
 # Route for reactivating a user
 @app.route('/reactivate_user/<int:user_id>', methods=['POST'])
 def reactivate_user(user_id):
+    if not session.get("user"):
+        return redirect(url_for("login"))
     try:
         user = User.query.get(user_id)
-        # Teammate 1: Replace mock logic with database query and update
         if user:
             user.status = 'active'
             db.session.commit()
@@ -223,15 +221,17 @@ def reactivate_user(user_id):
         flash(f'An error occurred: {str(e)}', 'danger')
     return redirect(url_for('user_list'))
 
-
-@app.route("/login")  #Login Route – Initiate the Authentication Flow
+@app.route("/login")  # Login Route – Render Login Page
 def login():
+    return render_template('login.html')
+
+@app.route("/start_login")  # Start Login Route – Redirect to Microsoft Login
+def start_login():
     session["state"] = str(uuid.uuid4())
     auth_url = _build_auth_url(session["state"])
     return redirect(auth_url)
 
-
-def _build_auth_url(state): #Build the Authorization URL:
+def _build_auth_url(state):  # Build the Authorization URL:
     msal_app = msal.ConfidentialClientApplication(
         CLIENT_ID, authority=AUTHORITY, client_credential=CLIENT_SECRET
     )
@@ -240,10 +240,9 @@ def _build_auth_url(state): #Build the Authorization URL:
         state=state,
         redirect_uri=url_for("authorized", _external=True)
     )
-    return auth_url    
+    return auth_url
 
-
-@app.route(REDIRECT_PATH) #Callback (Authorized) Route – Process the Token 
+@app.route(REDIRECT_PATH)  # Callback (Authorized) Route – Process the Token
 def authorized():
     # Verify state to mitigate CSRF attacks
     if request.args.get("state") != session.get("state"):
@@ -268,14 +267,29 @@ def authorized():
             return f"Error: {result.get('error')}"
         # Store user information in the session (e.g., user claims from the ID token)
         session["user"] = result.get("id_token_claims")
+
+        # Add user to database if not already present
+        user_info = session["user"]
+        user = User.query.filter_by(email=user_info["preferred_username"]).first()
+        if not user:
+            basic_user_role = Role.query.filter_by(name='basic_user').first()
+            new_user = User(
+                email=user_info["preferred_username"],
+                full_name=user_info["name"],
+                provider_user_id=user_info["oid"],
+                provider="Microsoft",
+                role=basic_user_role
+            )
+            db.session.add(new_user)
+            db.session.commit()
+
         return redirect(url_for("index"))
     return redirect(url_for("index"))
 
-@app.route("/logout") #Logout Route – Clear the User Session
+@app.route("/logout")  # Logout Route – Clear the User Session
 def logout():
     session.clear()
     return redirect(url_for("index"))
-
 
 # Run the Flask application
 if __name__ == '__main__':

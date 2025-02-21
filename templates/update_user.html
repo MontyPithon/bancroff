@@ -1,27 +1,29 @@
 {% extends "layout.html" %}
+
 {% block content %}
-<!-- Form for updating an existing user -->
-<h2 class="mt-5">Update User</h2>
-<form method="POST" action="">
-    {{ form.hidden_tag() }}
-    <div class="form-group">
-        {{ form.name.label(class="form-control-label") }}
-        {{ form.name(class="form-control") }}
-    </div>
-    <div class="form-group">
-        {{ form.email.label(class="form-control-label") }}
-        {{ form.email(class="form-control") }}
-    </div>
-    <div class="form-group">
-        {{ form.role.label(class="form-control-label") }}
-        {{ form.role(class="form-control") }}
-    </div>
-    <div class="form-group">
-        {{ form.status.label(class="form-control-label") }}
-        {{ form.status(class="form-control") }}
-    </div>
-    <div class="form-group">
-        {{ form.submit(class="btn btn-primary") }}
-    </div>
-</form>
+<div class="container mt-5">
+    <h2>Update User</h2>
+    <form method="POST" action="{{ url_for('update_user', user_id=user.id) }}">
+        {{ form.hidden_tag() }}
+        <div class="form-group">
+            {{ form.name.label(class="form-control-label") }}
+            {{ form.name(class="form-control") }}
+        </div>
+        <div class="form-group">
+            {{ form.email.label(class="form-control-label") }}
+            {{ form.email(class="form-control") }}
+        </div>
+        <div class="form-group">
+            {{ form.role.label(class="form-control-label") }}
+            {{ form.role(class="form-control") }}
+        </div>
+        <div class="form-group">
+            {{ form.status.label(class="form-control-label") }}
+            {{ form.status(class="form-control") }}
+        </div>
+        <div class="form-group">
+            {{ form.submit(class="btn btn-primary") }}
+        </div>
+    </form>
+</div>
 {% endblock %}
