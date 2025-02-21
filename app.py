@@ -6,9 +6,17 @@ import msal
 import uuid
 from flask_sqlalchemy import SQLAlchemy
 from faker import Faker
+<<<<<<< HEAD
 
 CLIENT_ID = "1daa4a2e-7a38-4225-854c-45d232e9ccbf"  # Replace with your Application (client) ID
 CLIENT_SECRET = "zjo8Q~N4HOF61PaaHwEOVGwLMFH6vondPFxWPcjN"  # Replace with your Client Secret
+=======
+from functools import wraps
+    
+
+CLIENT_ID = "1daa4a2e-7a38-4225-854c-45d232e9ccbf"              # Replace with your Application (client) IDimport uuid
+CLIENT_SECRET = "zjo8Q~N4HOF61PaaHwEOVGwLMFH6vondPFxWPcjN"      # Replace with your Client Secret
+>>>>>>> feature-decos
 AUTHORITY = "https://login.microsoftonline.com/170bbabd-a2f0-4c90-ad4b-0e8f0f0c4259"  # Replace with your Tenant ID
 REDIRECT_PATH = "/getAToken"  # Must match the registered redirect URI
 SCOPE = ["User.Read"]  # Adjust scopes as needed for your app
@@ -25,6 +33,7 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///bancroff.db'
 db = SQLAlchemy(app)
 
 #db models
+#TODO: possibly remove provider_user_id and provider and add in future if needed
 class User(db.Model):
     __tablename__ = 'users'
     id = db.Column(db.Integer, primary_key=True)
@@ -111,13 +120,34 @@ with app.app_context():
     db.create_all()
     add_fake_data()
 
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if session.get("role") != "admin":
+            flash("You do not have permission to access this page.", "danger")
+            return redirect(url_for("index"))
+        return f(*args, **kwargs)
+    return decorated_function
+
+def active_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if session.get("status") == "deactivated":
+            flash("Your account is deactivated. Please contact the administrator.", "danger")
+            return redirect(url_for("index"))
+        return f(*args, **kwargs)
+    return decorated_function
+
 # Route for the home page
 @app.route('/')
 def index():
+    print(session) 
     return render_template('index.html')
 
 # Route for displaying the list of users
 @app.route('/users')
+@admin_required
+@active_required
 def user_list():
     if not session.get("user"):
         return redirect(url_for("login"))
@@ -126,6 +156,8 @@ def user_list():
 
 # Route for creating a new user
 @app.route('/create_user', methods=['GET', 'POST'])
+@admin_required
+@active_required
 def create_user():
     if not session.get("user"):
         return redirect(url_for("login"))
@@ -144,6 +176,8 @@ def create_user():
 
 # Route for updating an existing user
 @app.route('/update_user/<int:user_id>', methods=['GET', 'POST'])
+@admin_required
+@active_required
 def update_user(user_id):
     if not session.get("user"):
         return redirect(url_for("login"))
@@ -175,6 +209,8 @@ def update_user(user_id):
 
 # Route for deleting a user
 @app.route('/delete_user/<int:user_id>', methods=['POST'])
+@admin_required
+@active_required
 def delete_user(user_id):
     if not session.get("user"):
         return redirect(url_for("login"))
@@ -189,6 +225,8 @@ def delete_user(user_id):
 
 # Route for deactivating a user
 @app.route('/deactivate_user/<int:user_id>', methods=['POST'])
+@admin_required
+@active_required
 def deactivate_user(user_id):
     if not session.get("user"):
         return redirect(url_for("login"))
@@ -206,6 +244,8 @@ def deactivate_user(user_id):
 
 # Route for reactivating a user
 @app.route('/reactivate_user/<int:user_id>', methods=['POST'])
+@admin_required
+@active_required
 def reactivate_user(user_id):
     if not session.get("user"):
         return redirect(url_for("login"))
@@ -284,6 +324,7 @@ def authorized():
             db.session.commit()
 
         return redirect(url_for("index"))
+    
     return redirect(url_for("index"))
 
 @app.route("/logout")  # Logout Route – Clear the User Session
