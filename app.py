@@ -6,17 +6,11 @@ import msal
 import uuid
 from flask_sqlalchemy import SQLAlchemy
 from faker import Faker
-<<<<<<< HEAD
-
-CLIENT_ID = "1daa4a2e-7a38-4225-854c-45d232e9ccbf"  # Replace with your Application (client) ID
-CLIENT_SECRET = "zjo8Q~N4HOF61PaaHwEOVGwLMFH6vondPFxWPcjN"  # Replace with your Client Secret
-=======
 from functools import wraps
     
 
 CLIENT_ID = "1daa4a2e-7a38-4225-854c-45d232e9ccbf"              # Replace with your Application (client) IDimport uuid
 CLIENT_SECRET = "zjo8Q~N4HOF61PaaHwEOVGwLMFH6vondPFxWPcjN"      # Replace with your Client Secret
->>>>>>> feature-decos
 AUTHORITY = "https://login.microsoftonline.com/170bbabd-a2f0-4c90-ad4b-0e8f0f0c4259"  # Replace with your Tenant ID
 REDIRECT_PATH = "/getAToken"  # Must match the registered redirect URI
 SCOPE = ["User.Read"]  # Adjust scopes as needed for your app
