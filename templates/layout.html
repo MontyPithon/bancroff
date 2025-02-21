@@ -20,7 +20,16 @@
                 <li class="nav-item">
                     <a class="nav-link" href="{{ url_for('user_list') }}">User List</a>
                 </li>
-                <!-- Teammate 2: Add login/logout links here -->
+                <!-- Add login/logout button here -->
+                {% if session.get('user') %}
+                    <li class="nav-item">
+                        <a class="btn btn-outline-danger" href="{{ url_for('logout') }}">Logout</a>
+                    </li>
+                {% else %}
+                    <li class="nav-item">
+                        <a class="btn btn-outline-primary" href="{{ url_for('login') }}">Login</a>
+                    </li>
+                {% endif %}
             </ul>
         </div>
     </nav>
