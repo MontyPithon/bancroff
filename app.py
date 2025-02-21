@@ -305,9 +305,6 @@ def authorized():
         print(user_email)
         user = User.query.filter_by(email=user_email).first()
         
-        #first sign up logic
-        print(session["user"])
-
         if user:
             session["role"] = user.role.name
             session["status"] = user.status 
