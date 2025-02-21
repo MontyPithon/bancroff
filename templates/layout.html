@@ -14,12 +14,14 @@
         <div class="collapse navbar-collapse">
             <ul class="navbar-nav ml-auto">
                 <!-- Links to create user and view user list -->
-                <li class="nav-item">
-                    <a class="nav-link" href="{{ url_for('create_user') }}">Create User</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="{{ url_for('user_list') }}">User List</a>
-                </li>
+                {% if session.get('user') and session.get('role') == 'admin' %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('create_user') }}">Create User</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('user_list') }}">User List</a>
+                    </li>
+                {% endif %}
                 <!-- Add login/logout button here -->
                 {% if session.get('user') %}
                     <li class="nav-item">
