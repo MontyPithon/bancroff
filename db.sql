@@ -45,6 +45,7 @@ CREATE TABLE request_types (
   name TEXT NOT NULL,
   description TEXT,
   form_schema JSON,
+  template_doc_path TEXT,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -55,6 +56,7 @@ CREATE TABLE requests (
   title TEXT NOT NULL,
   form_data JSON,
   status TEXT DEFAULT 'draft',
+  final_document_path TEXT,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (type_id) REFERENCES request_types(id),
@@ -86,7 +88,6 @@ CREATE TABLE request_approvals (
   approver_id INTEGER,
   status TEXT DEFAULT 'pending',
   comments TEXT,
-  signed_pdf_path TEXT,
   approved_at DATETIME,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (request_id) REFERENCES requests(id),
