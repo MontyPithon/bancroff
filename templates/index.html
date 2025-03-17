@@ -11,4 +11,134 @@
     <a class="btn btn-primary btn-lg" href="{{ url_for('create_user') }}" role="button">Create User</a>
     {% endif %}
 </div>
+
+<!-- Signature Upload Section -->
+<div class="container mt-5">
+    <h2>Upload Your Signature</h2>
+    <form id="signatureForm" enctype="multipart/form-data">
+        <input type="hidden" id="userId" name="userId" value="{{ session.get('user_id') }}">
+        <div class="form-group">
+            <label for="signatureFile">Choose a signature file:</label>
+            <input type="file" class="form-control-file" id="signatureFile" name="signatureFile" accept="image/*" required>
+        </div>
+        <button type="submit" class="btn btn-primary">Upload</button>
+    </form>
+</div>
+
+<!-- Email Alias Approval Form Section -->
+<div class="container mt-5">
+    <h2>Email Alias Request</h2>
+    <form id="emailAliasForm">
+        <input type="hidden" id="firstName" name="firstName">
+        <input type="hidden" id="lastName" name="lastName">
+        <input type="hidden" id="submissionDate" name="submissionDate">
+        <div class="form-group">
+            <label for="alias">Email Alias:</label>
+            <input type="text" class="form-control" id="alias" name="alias" required>
+        </div>
+        <div class="form-group">
+            <label for="reason">Reason for Alias:</label>
+            <textarea class="form-control" id="reason" name="reason" required></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary">Submit</button>
+    </form>
+</div>
+
+<!-- Verification of Enrollment Approval Form Section -->
+<div class="container mt-5">
+    <h2>Verification of Enrollment Request</h2>
+    <form id="verificationOfEnrollmentForm">
+        <input type="hidden" id="firstName" name="firstName">
+        <input type="hidden" id="lastName" name="lastName">
+        <input type="hidden" id="submissionDate" name="submissionDate">
+        <div class="form-group">
+            <label for="student_id">Student ID:</label>
+            <input type="text" class="form-control" id="student_id" name="student_id" required>
+        </div>
+        <div class="form-group">
+            <label for="purpose">Purpose of Verification:</label>
+            <textarea class="form-control" id="purpose" name="purpose" required></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary">Submit</button>
+    </form>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', (event) => {
+        // Fetch user details from session and populate the form fields
+        fetch('/api/get_user_details')
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('firstName').value = data.firstName;
+                document.getElementById('lastName').value = data.lastName;
+                document.getElementById('submissionDate').value = new Date().toISOString().split('T')[0];
+            });
+    });
+
+    document.getElementById('signatureForm').addEventListener('submit', function(event) {
+        event.preventDefault();
+        const formData = new FormData(this);
+        // Placeholder for backend integration: Update the database with the signature file
+        fetch('/upload_signature', {
+            method: 'POST',
+            body: formData,
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.message) {
+                alert(data.message);
+            } else {
+                alert('An error occurred while uploading the signature.');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while uploading the signature.');
+        });
+    });
+
+    document.getElementById('emailAliasForm').addEventListener('submit', function(event) {
+        event.preventDefault();
+        const formData = new FormData(this);
+        // Placeholder for backend integration: Update the database with the email alias request
+        fetch('/submit_email_alias', {
+            method: 'POST',
+            body: formData,
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.message) {
+                alert(data.message);
+            } else {
+                alert('An error occurred while submitting the email alias request.');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while submitting the email alias request.');
+        });
+    });
+
+    document.getElementById('verificationOfEnrollmentForm').addEventListener('submit', function(event) {
+        event.preventDefault();
+        const formData = new FormData(this);
+        // Placeholder for backend integration: Update the database with the verification of enrollment request
+        fetch('/submit_verification_of_enrollment', {
+            method: 'POST',
+            body: formData,
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.message) {
+                alert(data.message);
+            } else {
+                alert('An error occurred while submitting the verification of enrollment request.');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while submitting the verification of enrollment request.');
+        });
+    });
+</script>
 {% endblock %}
