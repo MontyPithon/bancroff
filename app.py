@@ -40,6 +40,7 @@ class User(db.Model):
     provider = db.Column(db.String(30))
     role_id = db.Column(db.Integer, db.ForeignKey('roles.id'))
     role = db.relationship('Role', backref=db.backref('users', lazy=True))
+    signature_path = db.Column(db.String(255))
 
 class Role(db.Model):
     __tablename__ = 'roles'
