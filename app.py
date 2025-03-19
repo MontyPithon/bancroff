@@ -20,6 +20,8 @@ SCOPE = ["User.Read"]  # Adjust scopes as needed for your app
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'password'  # Secret key for session management
 
+app.config['UPLOAD_FOLDER'] = 'uploads' #3/18 Configure the folder where uploaded signature images will be stored
+app.config['ALLOWED_EXTENSIONS'] = {'png', 'jpg', 'jpeg', 'gif'} #3/18 Define a set of allowed file extensions for uploaded images
 # Enable debug mode for detailed error messages
 app.debug = True
 
