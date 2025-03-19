@@ -1,5 +1,6 @@
-from flask import Flask, render_template, redirect, url_for, flash, request, session
+from flask import Flask, render_template, redirect, url_for, flash, request, session, render_template_string
 from flask_wtf import FlaskForm
+from werkzeug.utils import secure_filename
 from wtforms import StringField, SubmitField, SelectField
 from wtforms.validators import DataRequired, Email
 import msal
