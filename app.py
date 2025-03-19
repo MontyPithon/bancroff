@@ -344,7 +344,48 @@ def authorized():
 def logout():
     session.clear()
     return redirect(url_for("index"))
-
+    
+def allowed_file(filename): #3/18 Helper function to check if an uploaded file has one of the allowed extensions
+    # Ensure the filename contains a period (.) and then check the extension against allowed types
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
+    
+@app.route('/upload_signature', methods=['GET', 'POST']) # Define a route to handle the signature upload
+def upload_signature():
+    if request.method == 'POST':
+        # Check if the POST request has the file part
+        if 'signature' not in request.files:
+            flash('No file part')
+            return redirect(request.url)
+        file = request.files['signature']
+        if file.filename == '':
+            flash('No selected file')
+            return redirect(request.url)
+        if file and allowed_file(file.filename):
+            filename = secure_filename(file.filename)
+            file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            file.save(file_path)
+            # TODO: Save file_path in your database for the user
+            flash('Signature uploaded successfully!')
+            return redirect(url_for('upload_signature'))
+    # Minimal form template
+    return render_template_string('''
+        <!doctype html>
+        <title>Upload Signature</title>
+        <h1>Upload your Signature</h1>
+        <form method="post" enctype="multipart/form-data">
+          <input type="file" name="signature">
+          <input type="submit" value="Upload">
+        </form>
+        {% with messages = get_flashed_messages() %}
+          {% if messages %}
+            <ul>
+            {% for message in messages %}
+              <li>{{ message }}</li>
+            {% endfor %}
+            </ul>
+          {% endif %}
+        {% endwith %}
+    ''')
 # Run the Flask application
 if __name__ == '__main__':
     app.run(debug=True, port=50010)
