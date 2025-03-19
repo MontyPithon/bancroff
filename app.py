@@ -21,8 +21,7 @@ SCOPE = ["User.Read"]  # Adjust scopes as needed for your app
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'password'  # Secret key for session management
 
-app.config['UPLOAD_FOLDER'] = 'uploads' #3/18 Configure the folder where uploaded signature images will be stored
-app.config['ALLOWED_EXTENSIONS'] = {'png', 'jpg', 'jpeg', 'gif'} #3/18 Define a set of allowed file extensions for uploaded images
+
 # Enable debug mode for detailed error messages
 app.debug = True
 
@@ -344,10 +343,12 @@ def authorized():
 def logout():
     session.clear()
     return redirect(url_for("index"))
-    
-def allowed_file(filename): #3/18 Helper function to check if an uploaded file has one of the allowed extensions
-    # Ensure the filename contains a period (.) and then check the extension against allowed types
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
+
+app.config['UPLOAD_FOLDER'] = os.path.join(os.getcwd(), 'uploads') #3/18 Configure the folder where uploaded signature images will be stored
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'} #3/18 Define a set of allowed file extensions for uploaded images
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
     
 @app.route('/upload_signature', methods=['GET', 'POST']) # Define a route to handle the signature upload
 def upload_signature():
