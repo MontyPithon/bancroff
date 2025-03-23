@@ -1,4 +1,5 @@
-from flask import Flask, render_template, redirect, url_for, flash, request, session, render_template_string
+from flask import Flask, render_template, redirect, url_for, flash, request, session, render_template_string, jsonify
+import json
 from flask_wtf import FlaskForm
 from werkzeug.utils import secure_filename
 from wtforms import StringField, SubmitField, SelectField
@@ -60,6 +61,71 @@ class RolePermission(db.Model):
     __tablename__ = 'role_permissions'
     role_id = db.Column(db.Integer, db.ForeignKey('roles.id'), primary_key=True)
     permission_id = db.Column(db.Integer, db.ForeignKey('permissions.id'), primary_key=True)
+
+class RequestType(db.Model):
+    __tablename__ = 'request_types'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    name = db.Column(db.String(255), nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    form_schema = db.Column(db.JSON, nullable=True)
+    template_doc_path = db.Column(db.String(255), nullable=True)
+    created_at = db.Column(db.DateTime, nullable=False, server_default=db.func.current_timestamp())
+    requests = db.relationship('Request', backref='request_type', lazy=True)
+    workflows = db.relationship('ApprovalWorkflow', backref='request_type', lazy=True)
+
+class Request(db.Model):
+    __tablename__ = 'requests'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    type_id = db.Column(db.Integer, db.ForeignKey('request_types.id'), nullable=False)
+    requester_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    title = db.Column(db.String(255), nullable=False)
+    form_data = db.Column(db.JSON)
+    status = db.Column(db.String(50), default='draft')
+    final_document_path = db.Column(db.String(255), nullable=True)
+    created_at = db.Column(db.DateTime, nullable=False, server_default=db.func.current_timestamp())
+    updated_at = db.Column(db.DateTime, nullable=False, server_default=db.func.current_timestamp(),
+                           onupdate=db.func.current_timestamp())
+    requester = db.relationship('User', backref='requests')
+    approvals = db.relationship('RequestApproval', backref='request', lazy=True)
+
+class UserSignature(db.Model):
+    __tablename__ = 'user_signatures'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    signature_image_path = db.Column(db.String(255), nullable=False)
+    uploaded_at = db.Column(db.DateTime, default=db.func.current_timestamp(), nullable=False)
+    is_active = db.Column(db.Boolean, nullable=False)
+    user = db.relationship('User', backref='signatures')
+
+class ApprovalWorkflow(db.Model):
+    __tablename__ = 'approval_workflows'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    request_type_id = db.Column(db.Integer, db.ForeignKey('request_types.id'), nullable=False)
+    name = db.Column(db.String(255), nullable=False)
+    description = db.Column(db.Text)
+    steps = db.relationship('ApprovalStep', backref='workflow', lazy=True, order_by='ApprovalStep.step_order')
+
+class ApprovalStep(db.Model):
+    __tablename__ = 'approval_steps'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    workflow_id = db.Column(db.Integer, db.ForeignKey('approval_workflows.id'), nullable=False)
+    step_order = db.Column(db.Integer, nullable=False)
+    approver_role_id = db.Column(db.Integer, db.ForeignKey('roles.id'), nullable=False)
+    name = db.Column(db.String(255), nullable=False)
+    approver_role = db.relationship('Role')
+    approvals = db.relationship('RequestApproval', backref='step', lazy=True)
+
+class RequestApproval(db.Model):
+    __tablename__ = 'request_approvals'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    request_id = db.Column(db.Integer, db.ForeignKey('requests.id'), nullable=False)
+    step_id = db.Column(db.Integer, db.ForeignKey('approval_steps.id'), nullable=False)
+    approver_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    status = db.Column(db.String(50), default='pending')
+    comments = db.Column(db.Text)
+    approved_at = db.Column(db.DateTime)
+    created_at = db.Column(db.DateTime, default=db.func.current_timestamp(), nullable=False)
+    approver = db.relationship('User', backref='approvals')
 
 # Define the UserForm for creating and updating users
 class UserForm(FlaskForm):
@@ -375,6 +441,67 @@ def upload_signature():
 
     # Render the upload form (GET request)
     return render_template('upload_signature.html')
+
+# Forms
+@app.route('/rcl_form', methods=['GET', 'POST'])
+@active_required
+def rcl_form():
+    """
+    Displays the RCL form (GET) and processes submitted form data (POST).
+    Stores form data in the 'requests' table with a reference to 'request_types'
+    for a 'RCL' (Reduced Course Load) request.
+    Adjust field names and logic based on your specific needs.
+    """
+
+    if request.method == 'POST':
+        try:
+            # 1. Retrieve or create the RCL request type
+            rcl_type = RequestType.query.filter_by(name='RCL').first()
+            if not rcl_type:
+                rcl_type = RequestType(
+                    name='RCL',
+                    description='Reduced Course Load request',
+                    form_schema=None  # Store JSON schema if desired
+                )
+                db.session.add(rcl_type)
+                db.session.commit()
+
+            # 2. Identify the logged-in user from session (example assumes 'email' stored in session)
+            current_user = None
+            if 'user' in session:
+                user_email = session['user'].get('preferred_username')
+                current_user = User.query.filter_by(email=user_email).first()
+
+            # 3. Convert form data to a dictionary and then to JSON
+            form_dict = request.form.to_dict(flat=True)
+            # If you have checkboxes or repeated fields, handle them accordingly
+            # e.g., form.getlist('iai[]') and store them in form_dict
+
+            # 4. Create a new “requests” record
+            new_request = Request(
+                type_id=rcl_type.id,
+                requester_id=current_user.id if current_user else 0,
+                title='Reduced Course Load Request',
+                form_data=json.dumps(form_dict),  # Store entire form data as JSON
+                status='draft'  # or 'submitted', depending on your workflow
+            )
+
+            db.session.add(new_request)
+            db.session.commit()
+
+            flash('RCL Form submitted successfully!', 'success')
+            return redirect(url_for('index'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'An error occurred while submitting the RCL form: {str(e)}', 'danger')
+            return redirect(url_for('rcl_form'))
+
+    # If GET request, simply render the RCL form
+    return render_template('rcl_form.html')
+
+
+
+
 # Run the Flask application
 if __name__ == '__main__':
     app.run(debug=True, port=50010)
