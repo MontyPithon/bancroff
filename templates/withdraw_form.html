@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UH Medical/Administrative Term Withdrawal Request Form</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            text-align: center;
+            border-bottom: 2px solid #C8102E;
+        }
+        .logo {
+            max-width: 250px;
+            margin-bottom: 10px;
+        }
+        h1 {
+            color: #C8102E;
+        }
+        .form-section {
+            margin: 20px 0;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        label {
+            display: block;
+            margin: 8px 0 4px;
+        }
+        input[type="text"], input[type="number"], input[type="date"], input[type="email"] {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            box-sizing: border-box;
+        }
+        .submit-btn {
+            background-color: #C8102E;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .note {
+            font-style: italic;
+            font-size: 1em;
+            color: #555;
+        }
+        .yesOrNo label {
+            display: inline-block;
+            margin-left: 5px; /* Add spacing between the radio button and label */
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <img src="https://uh.edu/brand/_img/uh-vert-full-color-rgb.png" alt="University of Houston Logo" class="logo">
+        <h1>Medical/Administrative Term Withdrawal Request Form</h1>
+        <p>University of Houston Graduate School</p>
+    </div>
+
+    <form id="withdrawalForm">
+        <p class="note">This form is used to request a medical or administrative withdrawal from all courses for a specific term. Please complete all required fields accurately.</p>
+
+        <div class="form-section">
+            <h2>STUDENT INFORMATION</h2>
+            
+            <div> 1.
+                <label for="myUHID">myUH ID:</label>
+                <input type="text" id="myUHID" name="myUHID" required>
+                <label for="college">College:</label>
+                <input type="text" id="college" name="college">
+                <label for="planDegree">Plan/Degree:</label>
+                <input type="text" id="planDegree" name="planDegree">
+            </div>
+
+            <div>2.
+                <label for="address">Current Mailing Address:</label>
+                <input type="text" id="address" name="address">
+                <label for="phoneNumber">Phone Number:</label>
+                <input type="text" id="phoneNumber" name="phoneNumber">
+            </div>
+
+        </div>
+
+        <div class="form-section">
+            <h2>WITHDRAWAL DETAILS</h2>
+
+            <label for="termYear">3. Term (Year & Semester) for which you are requesting a withdrawal:</label>
+            <input type="text" id="termYear" name="termYear">
+
+            <label for="reason">4. Reason for Request:</label>
+            <textarea id="reason" name="reason" rows="4"></textarea>
+
+            <label for="lastDateAttended">5. Last Date You Attended Classes:</label>
+            <input type="date" id="lastDateAttended" name="lastDateAttended">
+            
+            <div class="yesOrNo">
+                6. Did you receive financial assistance this semester?**
+                <input type="radio" id="financialYes" name="financialAssistance" value="yes">
+                <label for="financialYes">Yes</label>
+                <input type="radio" id=financialNo" name="financialAssistance" value="no">
+                <label for="financialNo">No</label>
+            </div>
+
+            <div class="yesOrNo">
+                7. Do you have UH student health insurance for this semester?**
+                <input type="radio" id="healthYes" name="studentHealthInsurance" value="yes">
+                <label for="healthYes">Yes</label>
+                <input type="radio" id="healthNo" name="studentHealthInsurance" value="no">
+                <label for="healthNo">No</label>
+            </div>
+
+            <div class="yesOrNo">
+                8. Do you live in campus housing?**
+                <input type="radio" id="housingYes" name="campusHousing" value="yes">
+                <label for="housingYes">Yes</label>
+                <input type="radio" id="housingNo" name="campusHousing" value="no">
+                <label for="housingNo">No</label>
+            </div>
+
+            <div class="yesOrNo">
+                9. Do you hold the F1 or J1 Visa?**
+                <input type="radio" id="visaYes" name="visaStatus" value="yes">
+                <label for="visaYes">Yes</label>
+                <input type="radio" id="visaNo" name="visaStatus" value="no">
+                <label for="visaNo">No</label>
+            </div>
+
+            <div class="yesOrNo">
+                10. Are you currently utilizing G.I. Bill benefits?**
+                <input type="radio" id="giBillYes" name="giBillBenefits" value="yes">
+                <label for="giBillYes">Yes</label>
+                <input type="radio" id="giBillNo" name="giBillBenefits" value="no">
+                <label for="giBillNo">No</label>
+            </div>
+            <div>
+                <p class="note">** If you answered yes to any of these questions. You must speak vith the appropriate campus office regarding the
+                    ramifications of a term withdrawal. A withdrawal is an academic request and may affect finances and other concerns.</p>
+                <p class="note">Note: Doctoral students must submit a separate pefiton requesting a Leave of Absence.
+                        Intemational students must attach an completed and approved Reduced Course Load (RCL) form.</p>
+            </div>
+        </div>
+        
+        <div class="form-section">
+            <p>A request for withdrawal must include appropriate documentation verifying medical (or for Administrative Withdrawal—extraordinary non-medical) 
+                reasons that prevented you from course completion as exampled below:
+                <ol type="A">
+                    <li>
+                        Medical: A physician/psychiatrist letter on letterhead, with original signature and license number;
+                        must certify dates of treatment; identify medical condition, injury, or treatment that warrants withdrawal;
+                        and justify inability to resume or successfully complete studies for the term, in clear support of a medical withdrawal.
+                    </li>
+                    <li>
+                        Primary caregiver: Physician must certify that immediate family member was being cared for by you; include dates of impediment;
+                        bear an original signature and license number.
+                    </li>
+                    <li>
+                        Legal detention: Legal advisor must certify you were unable to complete coursework due to specific legal issue; 
+                        include dates of incarceration/court appearance; bear an original signature.
+                    </li>
+                    <li>
+                        Death of immediate family member: Copy of original death certificate; immediate family member includes mother, 
+                        father, sister, brother, child, spouse, grandparent.
+                    </li>
+                    <li>
+                        Military deployment: copy of the original military orders with active service dates.
+                    </li>
+                </ol>
+                All originals of requested documents must be submitted by the posted deadlines to expedite processing of the approved request. You must submit a statement accepting grade change and loss of completed courses with passing grades, if applicable.
+                Under a medical withdrawal, an enrollment hold will be placed on your account. In order to lift the hold and return to course enrollment: (a) submit a petition requesting reinstatement, including return from Leave of Absence for doctoral students; 
+                and (b) submit a doctor's letter verifying your ability to successfully resume coursework, 
+                usually from the same licensed professional who recommended withdrawal. Such documentation for reinstatement from medical withdrawal must be submitted no later than two weeks prior to start of the term of your intended reenrollment. 
+                Any future course enrollment will be cancelled unless hold is lifted.
+            </p>
+        </div>
+        <div class="form-section">
+            <h2>Type of Withdrawal</h2>
+            <div class="yesOrNo">
+                <input type="radio" id="medicalWithdrawal" name="withdrawalType" value="medical">
+                <label for="medicalWithdrawal">Medical Withdrawal</label>
+                <input type="radio" id="administrativeWithdrawal" name="withdrawalType" value="administrative">
+                <label for="administrativeWithdrawal">Administrative Withdrawal</label>
+            </div>
+        </div>
+        <div class="form-section">
+            <h2>Courses to Withdraw</h2>
+            <p>Please list all courses and sections to be withdrawn:</p>
+            <textarea id="coursesToWithdraw" name="coursesToWithdraw" rows="4"></textarea>
+        </div>
+
+        <div class="form-section">
+            <h2>Additional Comments</h2>
+            <textarea id="additionalComments" name="additionalComments" rows="4"></textarea>
+        </div>
+
+        <div class="signature-section">
+            <h2>Academic Certifying Signatures</h2>
+            <p class="note">This form requires signatures from your Academic Advisor, Chair, and College Dean</p>
+            <p class="note">Note: This electronic form will be submitted for approval after submission</p>
+        </div>
+        
+        <button type="submit" class="submit-btn">Submit Form</button>
+
+    </form>
+</body>
+</html>
