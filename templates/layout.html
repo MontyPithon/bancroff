@@ -22,6 +22,13 @@
                         <a class="nav-link" href="{{ url_for('user_list') }}">User List</a>
                     </li>
                 {% endif %}
+                {% if session.get('user') and session.get('role') != 'basic_user'  %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('pending_approvals') }}">Pending Approvals</a>
+                    </li>
+                {% endif %}
+                <!-- TODO: possibly make this only available to basic users -->
+                <a class="nav-link" href="{{ url_for('available_forms') }}">Forms</a>
                 <!-- Add login/logout button here -->
                 {% if session.get('user') %}
                     <li class="nav-item">
