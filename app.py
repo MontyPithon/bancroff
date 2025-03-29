@@ -716,6 +716,83 @@ def rcl_form():
     # GET request
     return render_template('rcl_form.html')
 
+@app.route('/withdrawal_form', methods=['GET', 'POST'])
+@active_required
+def withdrawal_form():
+    if not session.get("user"):
+        return redirect(url_for("login"))
+    
+    if request.method == 'POST':
+        try:
+            user_email = session['user'].get('preferred_username').lower()
+            current_user = User.query.filter_by(email=user_email).first()
+
+            withdrawal_type = RequestType.query.filter_by(name='Withdrawal').first()
+            if not withdrawal_type:
+                flash('Withdrawal form type not found in the database', 'danger')
+                return redirect(url_for('index'))
+            if not current_user:
+                flash('User not found. Please log in again.', 'danger')
+                return redirect(url_for('login'))
+            
+
+            form_data = {}
+            form_data['myUHID'] = request.form.get('myUHID')
+            form_data['college'] = request.form.get('college')
+            form_data['planDegree'] = request.form.get('planDegree')
+            form_data['address'] = request.form.get('address')
+            form_data['phoneNumber'] = request.form.get('phoneNumber')
+            form_data['termYear'] = request.form.get('termYear')
+            form_data['reason'] = request.form.get('reason')
+            form_data['lastDateAttended'] = request.form.get('lastDateAttended')
+            form_data['financialAssistance'] = request.form.get('financialAssistance') == 'yes'
+            form_data['studentHealthInsurance'] = request.form.get('studentHealthInsurance') == 'yes'
+            form_data['campusHousing'] = request.form.get('campusHousing') == 'yes'
+            form_data['visaStatus'] = request.form.get('visaStatus') == 'yes'
+            form_data['giBillBenefits'] = request.form.get('giBillBenefits') == 'yes'
+            form_data['withdrawalType'] = request.form.get('withdrawalType')
+            form_data['coursesToWithdraw'] = request.form.get('coursesToWithdraw')
+            form_data['additionalComments'] = request.form.get('additionalComments')
+            
+            from datetime import date
+            form_data['submissionDate'] = str(date.today())
+                
+            # create request
+            new_request = Request(
+                type_id=withdrawal_type.id,
+                requester_id=current_user.id,
+                title=f"Withdrawal Request - {form_data['termYear']}",
+                form_data=form_data,
+                status='submitted'
+            )
+            db.session.add(new_request)
+            db.session.commit()
+            
+            # create entries in approval table set as pending
+            workflow = ApprovalWorkflow.query.filter_by(request_type_id=withdrawal_type.id).first()
+            if workflow:
+                for step in workflow.steps:
+                    approval = RequestApproval(
+                        request_id=new_request.id,
+                        step_id=step.id,
+                        status='pending'
+                    )
+                    db.session.add(approval)
+                
+                db.session.commit()
+                flash('Withdrawal Form submitted successfully and sent for approval!', 'success')
+            return redirect(url_for('my_requests'))
+            
+        except Exception as e:
+            db.session.rollback()
+            print(f"ERROR processing withdrawal form: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            flash(f'An error occurred while submitting the withdrawal form: {str(e)}', 'danger')
+            return redirect(url_for('withdrawal_form'))
+    
+    # GET request
+    return render_template('withdraw_form.html')
 
 # Run the Flask application
 if __name__ == '__main__':

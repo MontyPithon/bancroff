@@ -65,7 +65,7 @@
         <p>University of Houston Graduate School</p>
     </div>
 
-    <form id="withdrawalForm">
+    <form id="withdrawalForm" action="{{ url_for('withdrawal_form') }}" method="post">
         <p class="note">This form is used to request a medical or administrative withdrawal from all courses for a specific term. Please complete all required fields accurately.</p>
 
         <div class="form-section">
@@ -105,7 +105,7 @@
                 6. Did you receive financial assistance this semester?**
                 <input type="radio" id="financialYes" name="financialAssistance" value="yes">
                 <label for="financialYes">Yes</label>
-                <input type="radio" id=financialNo" name="financialAssistance" value="no">
+                <input type="radio" id="financialNo" name="financialAssistance" value="no">
                 <label for="financialNo">No</label>
             </div>
 
