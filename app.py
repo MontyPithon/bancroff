@@ -821,6 +821,70 @@ def available_forms():
     
     return render_template('available_forms.html', form_types=form_types)
 
+@app.route('/request_approval/<int:approval_id>', methods=['GET', 'POST'])
+@active_required
+def request_approval(approval_id):
+    """View and process approval for a specific request"""
+    user_email = session['user'].get('preferred_username').lower()
+    current_user = User.query.filter_by(email=user_email).first()
+    
+    if not session.get("user"):
+        return redirect(url_for("login"))
+    if not current_user:
+        flash('User not found. Please log in again.', 'danger')
+        return redirect(url_for('login'))
+    
+    
+    approval = RequestApproval.query.get(approval_id)
+    if not approval:
+        flash('Approval request not found.', 'danger')
+        return redirect(url_for('pending_approvals'))
+    if current_user.role_id != approval.step.approver_role_id:
+        flash('You do not have permission to approve this request.', 'danger')
+        return redirect(url_for('pending_approvals'))
+    if approval.status != 'pending':
+        flash('This request has already been processed.', 'warning')
+        return redirect(url_for('pending_approvals'))
+    
+    if request.method == 'POST':
+        action = request.form.get('action')
+        comments = request.form.get('comments', '')
+        if action == 'approve':
+            approval.status = 'approved'
+            approval.comments = comments
+            approval.approver_id = current_user.id
+            approval.approved_at = db.func.current_timestamp()
+            
+            # check if this was the last approval step to mark the request as approved
+            request_approvals = RequestApproval.query.join(ApprovalStep).filter(RequestApproval.request_id == approval.request_id).order_by(ApprovalStep.step_order).all()
+            next_pending = False
+            for next_approval in request_approvals:
+                if next_approval.status == 'pending':
+                    next_pending = True
+                    break
+            if not next_pending:
+                approval.request.status = 'approved'
+                flash('Request has been fully approved!', 'success')
+            else:
+                flash('Request approved and moved to next approval step!', 'success')
+            
+            db.session.commit()
+
+        elif action == 'reject':
+            approval.status = 'rejected'
+            approval.comments = comments
+            approval.approver_id = current_user.id
+            approval.approved_at = db.func.current_timestamp()
+            approval.request.status = 'rejected'
+            db.session.commit()
+            flash('Request has been rejected.', 'warning')
+        
+        return redirect(url_for('pending_approvals'))
+    
+    # GET request
+    request_data = approval.request
+    form_data = request_data.form_data
+    return render_template('request_approval.html',approval=approval,request=request_data,form_data=form_data)
 
 # Run the Flask application
 if __name__ == '__main__':
