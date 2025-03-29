@@ -1,0 +1,55 @@
+{% extends 'layout.html' %}
+
+{% block title %}Available Forms{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">Available Request Forms</h4>
+                </div>
+                <div class="card-body">
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                        {% if messages %}
+                            {% for category, message in messages %}
+                                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                                    {{ message }}
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                    {% endwith %}
+
+                    <div class="row row-cols-1 row-cols-md-2 g-4 mt-3">
+                        {% for form_type in form_types %}
+                        <div class="col">
+                            <div class="card h-100">
+                                <div class="card-body">
+                                    <h5 class="card-title">{{ form_type.name }}</h5>
+                                    <p class="card-text">{{ form_type.description }}</p>
+                                </div>
+                                <div class="card-footer">
+                                    {% if form_type.name == 'RCL' %}
+                                    <a href="{{ url_for('rcl_form') }}" class="btn btn-success">Create New Request</a>
+                                    {% elif form_type.name == 'Withdrawal' %}
+                                    <a href="{{ url_for('withdrawal_form') }}" class="btn btn-success">Create New Request</a>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('index') }}" class="btn btn-secondary">Back to Home</a>
+                        <a href="{{ url_for('my_requests') }}" class="btn btn-primary">My Requests</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 
