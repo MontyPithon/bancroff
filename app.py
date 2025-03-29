@@ -809,6 +809,19 @@ def my_requests():
     requests = Request.query.filter_by(requester_id=current_user.id).order_by(Request.created_at.desc()).all()
     return render_template('my_requests.html', requests=requests)
 
+@app.route('/available_forms')
+@active_required
+def available_forms():
+    """Display all available request forms"""
+    if not session.get("user"):
+        return redirect(url_for("login"))
+    
+    # Get all request types from the database
+    form_types = RequestType.query.all()
+    
+    return render_template('available_forms.html', form_types=form_types)
+
+
 # Run the Flask application
 if __name__ == '__main__':
     app.run(debug=True, port=50010)
