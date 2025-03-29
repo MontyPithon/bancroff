@@ -10,7 +10,8 @@ from flask_sqlalchemy import SQLAlchemy
 from faker import Faker
 from functools import wraps
 import os
-    
+from form_schema import rcl_form_schema, withdrawal_form_schema
+
 
 CLIENT_ID = "1daa4a2e-7a38-4225-854c-45d232e9ccbf"              # Replace with your Application (client) IDimport uuid
 CLIENT_SECRET = "zjo8Q~N4HOF61PaaHwEOVGwLMFH6vondPFxWPcjN"      # Replace with your Client Secret
@@ -131,9 +132,194 @@ class RequestApproval(db.Model):
 class UserForm(FlaskForm):
     name = StringField('Name', validators=[DataRequired()])  # Name field, required
     email = StringField('Email', validators=[DataRequired(), Email()])  # Email field, required and must be a valid email
-    role = SelectField('Role', choices=[('basic_user', 'Basic User'), ('admin', 'Administrator')])  # Role selection
+    role = SelectField('Role', choices=[
+        ('basic_user', 'Basic User'),
+        ('admin', 'Administrator'),
+        ('dean', 'Dean'),
+        ('advisor', 'Advisor'),
+        ('chair', 'Chair')
+    ])
     status = SelectField('Status', choices=[('active', 'Active'), ('deactivated', 'Deactivated')])  # Status selection
     submit = SubmitField('Submit')  # Submit button
+
+# Add this function to initialize RCL-related data in the database
+def add_rcl_data():
+    """Add RCL (Reduced Course Load) related data to the database"""
+    try:
+        # Create RCL request type if it doesn't exist
+        rcl_type = RequestType.query.filter_by(name='RCL').first()
+        if not rcl_type:
+            rcl_type = RequestType(
+                name='RCL',
+                description='Reduced Course Load request for graduate students',
+                form_schema=rcl_form_schema,
+                template_doc_path=None  # Path to template document if needed
+            )
+            db.session.add(rcl_type)
+            db.session.commit()
+            print("RCL request type added")
+        
+        # Create necessary roles for approval workflow if they don't exist
+        advisor_role = Role.query.filter_by(name='advisor').first()
+        if not advisor_role:
+            advisor_role = Role(
+                name='advisor',
+                description='Academic Advisor role'
+            )
+            db.session.add(advisor_role)
+        
+        chair_role = Role.query.filter_by(name='chair').first()
+        if not chair_role:
+            chair_role = Role(
+                name='chair',
+                description='Department Chair role'
+            )
+            db.session.add(chair_role)
+        
+        dean_role = Role.query.filter_by(name='dean').first()
+        if not dean_role:
+            dean_role = Role(
+                name='dean',
+                description='College Dean role'
+            )
+            db.session.add(dean_role)
+        
+        db.session.commit()
+        print("RCL roles added")
+        
+        # Create approval workflow for RCL requests if it doesn't exist
+        workflow = ApprovalWorkflow.query.filter_by(
+            request_type_id=rcl_type.id, 
+            name='RCL Approval'
+        ).first()
+        
+        if not workflow:
+            workflow = ApprovalWorkflow(
+                request_type_id=rcl_type.id,
+                name='RCL Approval',
+                description='Approval workflow for Reduced Course Load requests'
+            )
+            db.session.add(workflow)
+            db.session.commit()
+            
+            # Create approval steps
+            steps = [
+                ApprovalStep(
+                    workflow_id=workflow.id,
+                    step_order=1,
+                    approver_role_id=advisor_role.id,
+                    name='Academic Advisor Approval'
+                ),
+                ApprovalStep(
+                    workflow_id=workflow.id,
+                    step_order=2,
+                    approver_role_id=chair_role.id,
+                    name='Department Chair Approval'
+                ),
+                ApprovalStep(
+                    workflow_id=workflow.id,
+                    step_order=3,
+                    approver_role_id=dean_role.id,
+                    name='College Dean Approval'
+                )
+            ]
+            db.session.add_all(steps)
+            db.session.commit()
+            print("RCL approval workflow and steps added")
+        
+    except Exception as e:
+        print(f"An error occurred while adding RCL data: {e}")
+        db.session.rollback()
+
+def add_withdrawal_form_data():
+    """Add Withdrawal form related data to the database"""
+    try:
+        # Create Withdrawal request type if it doesn't exist
+        withdrawal_type = RequestType.query.filter_by(name='Withdrawal').first()
+        if not withdrawal_type:
+            withdrawal_type = RequestType(
+                name='Withdrawal',
+                description='Medical/Administrative Term Withdrawal request',
+                form_schema=withdrawal_form_schema,
+                template_doc_path=None  # Path to template document if needed
+            )
+            db.session.add(withdrawal_type)
+            db.session.commit()
+            print("Withdrawal request type added")
+        
+        # Get or create necessary roles for approval workflow
+        advisor_role = Role.query.filter_by(name='advisor').first()
+        if not advisor_role:
+            advisor_role = Role(
+                name='advisor',
+                description='Academic Advisor role'
+            )
+            db.session.add(advisor_role)
+        
+        chair_role = Role.query.filter_by(name='chair').first()
+        if not chair_role:
+            chair_role = Role(
+                name='chair',
+                description='Department Chair role'
+            )
+            db.session.add(chair_role)
+        
+        dean_role = Role.query.filter_by(name='dean').first()
+        if not dean_role:
+            dean_role = Role(
+                name='dean',
+                description='College Dean role'
+            )
+            db.session.add(dean_role)
+        
+        # Remove health_role creation since we're eliminating that step
+        
+        db.session.commit()
+        print("Withdrawal roles added/confirmed")
+        
+        # Create approval workflow for Withdrawal requests if it doesn't exist
+        workflow = ApprovalWorkflow.query.filter_by(
+            request_type_id=withdrawal_type.id, 
+            name='Withdrawal Approval'
+        ).first()
+        
+        if not workflow:
+            workflow = ApprovalWorkflow(
+                request_type_id=withdrawal_type.id,
+                name='Withdrawal Approval',
+                description='Approval workflow for Medical/Administrative Term Withdrawal requests'
+            )
+            db.session.add(workflow)
+            db.session.commit()
+            
+            # Create approval steps - same process for both withdrawal types
+            steps = [
+                ApprovalStep(
+                    workflow_id=workflow.id,
+                    step_order=1,
+                    approver_role_id=advisor_role.id,
+                    name='Academic Advisor Approval'
+                ),
+                ApprovalStep(
+                    workflow_id=workflow.id,
+                    step_order=2,
+                    approver_role_id=chair_role.id,
+                    name='Department Chair Approval'
+                ),
+                ApprovalStep(
+                    workflow_id=workflow.id,
+                    step_order=3,
+                    approver_role_id=dean_role.id,
+                    name='College Dean Final Approval'
+                )
+            ]
+            db.session.add_all(steps)
+            db.session.commit()
+            print("Withdrawal approval workflow and steps added")
+        
+    except Exception as e:
+        print(f"An error occurred while adding Withdrawal form data: {e}")
+        db.session.rollback()
 
 def add_fake_data(num_users=5):
     fake = Faker()
@@ -186,6 +372,8 @@ if not os.path.exists('./instance/bancroff.db'):
         print('test')
         db.create_all()
         add_fake_data()
+        add_rcl_data()
+        add_withdrawal_form_data()
 
 def admin_required(f):
     @wraps(f)
@@ -442,64 +630,91 @@ def upload_signature():
     # Render the upload form (GET request)
     return render_template('upload_signature.html')
 
-# Forms
 @app.route('/rcl_form', methods=['GET', 'POST'])
 @active_required
 def rcl_form():
-    """
-    Displays the RCL form (GET) and processes submitted form data (POST).
-    Stores form data in the 'requests' table with a reference to 'request_types'
-    for a 'RCL' (Reduced Course Load) request.
-    Adjust field names and logic based on your specific needs.
-    """
-
+    print(session)
+    print(session.get("user"))
+    if not session.get("user"):
+        return redirect(url_for("login"))
+    
     if request.method == 'POST':
         try:
-            # 1. Retrieve or create the RCL request type
+            user_email = session['user'].get('preferred_username').lower()
+            current_user = User.query.filter_by(email=user_email).first()
+
             rcl_type = RequestType.query.filter_by(name='RCL').first()
             if not rcl_type:
-                rcl_type = RequestType(
-                    name='RCL',
-                    description='Reduced Course Load request',
-                    form_schema=None  # Store JSON schema if desired
-                )
-                db.session.add(rcl_type)
-                db.session.commit()
+                flash('RCL form type not found in the database', 'danger')
+                return redirect(url_for('index'))            
+            if not current_user:
+                flash('User not found. Please log in again.', 'danger')
+                return redirect(url_for('login'))
+            
+            # process form data 
+            form_data = {}
+            form_data['iai'] = request.form.getlist('iai[]')
+            form_data['reason'] = request.form.get('reason')
+            form_data['letter_attached'] = 'letter_attached' in request.form
+            form_data['track'] = request.form.get('track')
 
-            # 2. Identify the logged-in user from session (example assumes 'email' stored in session)
-            current_user = None
-            if 'user' in session:
-                user_email = session['user'].get('preferred_username')
-                current_user = User.query.filter_by(email=user_email).first()
+            if form_data['track'] == 'non_thesis':
+                form_data['non_thesis_hours'] = request.form.get('non_thesis_hours')
+            elif form_data['track'] == 'thesis':
+                form_data['thesis_hours'] = request.form.get('thesis_hours')
 
-            # 3. Convert form data to a dictionary and then to JSON
-            form_dict = request.form.to_dict(flat=True)
-            # If you have checkboxes or repeated fields, handle them accordingly
-            # e.g., form.getlist('iai[]') and store them in form_dict
+            form_data['semester'] = request.form.get('semester')
+            if form_data['semester'] == 'fall':
+                form_data['year'] = '20' + request.form.get('fall_year', '')
+            elif form_data['semester'] == 'spring':
+                form_data['year'] = '20' + request.form.get('spring_year', '')
+            
+            # max 4 drops
+            form_data['courses'] = []
+            for i in range(1, 4):
+                course = request.form.get(f'course{i}')
+                if course:
+                    form_data['courses'].append(course)
 
-            # 4. Create a new “requests” record
+            form_data['remaining_hours'] = request.form.get('remaining_hours')
+            form_data['ps_id'] = request.form.get('ps_id')
+    
+            from datetime import date
+            form_data['signature_date'] = str(date.today())
+
+            # create request
+            semester_info = f"{form_data['semester']} {form_data['year']}"
             new_request = Request(
                 type_id=rcl_type.id,
-                requester_id=current_user.id if current_user else 0,
-                title='Reduced Course Load Request',
-                form_data=json.dumps(form_dict),  # Store entire form data as JSON
-                status='draft'  # or 'submitted', depending on your workflow
+                requester_id=current_user.id,
+                title=f"RCL Request - {semester_info}",
+                form_data=form_data,
+                status='submitted' 
             )
-
             db.session.add(new_request)
             db.session.commit()
-
-            flash('RCL Form submitted successfully!', 'success')
+            
+            # create entries in approval table set as pending
+            workflow = ApprovalWorkflow.query.filter_by(request_type_id=rcl_type.id).first()
+            if workflow:
+                for step in workflow.steps:
+                    approval = RequestApproval(
+                        request_id=new_request.id,
+                        step_id=step.id,
+                        status='pending'
+                    )
+                    db.session.add(approval)
+                db.session.commit()
+                flash('RCL Form submitted successfully and sent for approval!', 'success')
             return redirect(url_for('index'))
+            
         except Exception as e:
             db.session.rollback()
             flash(f'An error occurred while submitting the RCL form: {str(e)}', 'danger')
             return redirect(url_for('rcl_form'))
-
-    # If GET request, simply render the RCL form
+    
+    # GET request
     return render_template('rcl_form.html')
-
-
 
 
 # Run the Flask application
