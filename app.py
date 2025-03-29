@@ -794,6 +794,21 @@ def withdrawal_form():
     # GET request
     return render_template('withdraw_form.html')
 
+@app.route('/my_requests')
+@active_required
+def my_requests():
+    user_email = session['user'].get('preferred_username').lower()
+    current_user = User.query.filter_by(email=user_email).first()   
+    
+    if not session.get("user"):
+        return redirect(url_for("login"))
+    if not current_user:
+        flash('User not found. Please log in again.', 'danger')
+        return redirect(url_for('login'))
+     
+    requests = Request.query.filter_by(requester_id=current_user.id).order_by(Request.created_at.desc()).all()
+    return render_template('my_requests.html', requests=requests)
+
 # Run the Flask application
 if __name__ == '__main__':
     app.run(debug=True, port=50010)
