@@ -821,6 +821,44 @@ def available_forms():
     
     return render_template('available_forms.html', form_types=form_types)
 
+@app.route('/pending_approvals')
+@active_required
+def pending_approvals():
+    user_email = session['user'].get('preferred_username').lower()
+    current_user = User.query.filter_by(email=user_email).first()
+    if not session.get("user"):
+        return redirect(url_for("login"))
+    if not current_user:
+        flash('User not found. Please log in again.', 'danger')
+        return redirect(url_for('login'))
+    if current_user.role == 'basic_user':
+        flash('You do not have an assigned role for approvals.', 'warning')
+        return redirect(url_for('index'))
+    
+
+    pending_approvals = []
+    role_steps = ApprovalStep.query.filter_by(approver_role_id=current_user.role_id).all()
+    step_ids = [step.id for step in role_steps]
+    
+    # find all pending request for matching role
+    if step_ids:
+        approval_requests = RequestApproval.query.filter(RequestApproval.step_id.in_(step_ids),RequestApproval.status == 'pending').all()
+        for approval in approval_requests:
+            request = approval.request
+            request_approvals = RequestApproval.query.join(ApprovalStep).filter(RequestApproval.request_id == request.id).order_by(ApprovalStep.step_order).all()
+            current_pending = next((a for a in request_approvals if a.status == 'pending'), None)
+            if current_pending and current_pending.id == approval.id:
+                pending_approvals.append({
+                    'approval_id': approval.id,
+                    'request': request,
+                    'request_type': request.request_type.name,
+                    'requester': request.requester.full_name,
+                    'submitted': request.created_at,
+                    'step': approval.step.name
+                })
+    
+    return render_template('pending_approvals.html', pending_approvals=pending_approvals)
+
 @app.route('/request_approval/<int:approval_id>', methods=['GET', 'POST'])
 @active_required
 def request_approval(approval_id):
