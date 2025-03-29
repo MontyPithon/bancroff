@@ -1,6 +1,6 @@
 from flask import render_template, redirect, url_for, flash, request, session
 from models import db, User, RequestType, Request, ApprovalWorkflow, RequestApproval
-from utils.auth_helpers import active_required
+from utils.auth_helpers import active_required, get_user_signature
 from datetime import date
 
 def setup_form_routes(app):
@@ -14,6 +14,10 @@ def setup_form_routes(app):
             try:
                 user_email = session['user'].get('preferred_username').lower()
                 current_user = User.query.filter_by(email=user_email).first()
+                signature = get_user_signature(current_user.id)
+                if not signature:
+                    flash('Please upload a signature before submitting the form.', 'warning')
+                    return redirect(url_for('upload_signature'))
 
                 rcl_type = RequestType.query.filter_by(name='RCL').first()
                 if not rcl_type:
@@ -52,6 +56,7 @@ def setup_form_routes(app):
                 form_data['ps_id'] = request.form.get('ps_id')
         
                 form_data['signature_date'] = str(date.today())
+                form_data['signature_path'] = signature.signature_image_path
 
                 # create request
                 semester_info = f"{form_data['semester']} {form_data['year']}"
@@ -97,6 +102,10 @@ def setup_form_routes(app):
             try:
                 user_email = session['user'].get('preferred_username').lower()
                 current_user = User.query.filter_by(email=user_email).first()
+                signature = get_user_signature(current_user.id)
+                if not signature:
+                    flash('Please upload a signature before submitting the form.', 'warning')
+                    return redirect(url_for('upload_signature'))
 
                 withdrawal_type = RequestType.query.filter_by(name='Withdrawal').first()
                 if not withdrawal_type:
@@ -124,7 +133,7 @@ def setup_form_routes(app):
                 form_data['withdrawalType'] = request.form.get('withdrawalType')
                 form_data['coursesToWithdraw'] = request.form.get('coursesToWithdraw')
                 form_data['additionalComments'] = request.form.get('additionalComments')
-                
+                form_data['signature_path'] = signature.signature_image_path
                 form_data['submissionDate'] = str(date.today())
                     
                 # create request

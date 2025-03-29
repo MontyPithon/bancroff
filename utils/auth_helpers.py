@@ -46,4 +46,13 @@ def get_token_from_code(client_id, client_secret, authority, code, scope, redire
     return result
 
 def allowed_file(filename, allowed_extensions):
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in allowed_extensions 
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in allowed_extensions
+
+def get_user_signature(user_id):
+    from models import UserSignature
+    signature = UserSignature.query.filter_by(
+        user_id=user_id,
+        is_active=True
+    ).order_by(UserSignature.uploaded_at.desc()).first()
+    
+    return signature 

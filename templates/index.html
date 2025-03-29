@@ -24,27 +24,6 @@
             });
     });
 
-    document.getElementById('signatureForm').addEventListener('submit', function(event) {
-        event.preventDefault();
-        const formData = new FormData(this);
-        // Placeholder for backend integration: Update the database with the signature file
-        fetch('/upload_signature', {
-            method: 'POST',
-            body: formData,
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.message) {
-                alert(data.message);
-            } else {
-                alert('An error occurred while uploading the signature.');
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('An error occurred while uploading the signature.');
-        });
-    });
 
     document.getElementById('emailAliasForm').addEventListener('submit', function(event) {
         event.preventDefault();

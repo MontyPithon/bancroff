@@ -32,6 +32,9 @@
                 <!-- Add login/logout button here -->
                 {% if session.get('user') %}
                     <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('upload_signature') }}">Upload Signature</a>
+                    </li>
+                    <li class="nav-item">
                         <a class="btn btn-outline-danger" href="{{ url_for('logout') }}">Logout</a>
                     </li>
                 {% else %}

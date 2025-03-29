@@ -15,7 +15,7 @@ DEBUG = True
 SQLALCHEMY_DATABASE_URI = 'sqlite:///bancroff.db'
 
 # File upload settings
-UPLOAD_FOLDER = os.path.join(os.getcwd(), 'uploads')
+UPLOAD_FOLDER = os.path.join('static', 'uploads')
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
 
 # Development settings

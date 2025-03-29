@@ -1,9 +1,11 @@
 from flask import render_template, redirect, url_for, flash, session, request
-from models import db, User, Role
+from models import db, User, Role, UserSignature
 from forms import UserForm
 from utils.auth_helpers import admin_required, active_required
+from forms.user_forms import SignatureUploadForm
 import config
-
+from werkzeug.utils import secure_filename
+import os
 def setup_user_routes(app):
     @app.route('/users')
     @admin_required
@@ -124,34 +126,54 @@ def setup_user_routes(app):
         return redirect(url_for('user_list'))
 
     @app.route('/upload_signature', methods=['GET', 'POST'])
+    @active_required
     def upload_signature():
-        from werkzeug.utils import secure_filename
-        import os
-        from utils.auth_helpers import allowed_file
-        
         if not session.get("user"):
             return redirect(url_for("login"))
             
-        if request.method == 'POST':
-            # Check if the file part is present in the request
-            if 'signature' not in request.files:
-                flash('No file part in the request')
-                return redirect(request.url)
+        user_email = session['user'].get('preferred_username').lower()
+        current_user = User.query.filter_by(email=user_email).first()
+        
+        if not current_user:
+            flash('User not found. Please log in again.', 'danger')
+            return redirect(url_for('login'))
+        
+        # Get the current active signature
+        from utils.auth_helpers import get_user_signature
+        active_signature = get_user_signature(current_user.id)
+        
+        form = SignatureUploadForm()
+        
+        if form.validate_on_submit():
+            filename = secure_filename(form.signature.data.filename)
             
-            file = request.files['signature']
+            # Create unique filename with user ID and timestamp
+            import time 
+            file_ext = filename.rsplit('.', 1)[1].lower()
+            unique_filename = f"signature_{current_user.id}_{int(time.time())}.{file_ext}"
             
-            # Check if a file was selected
-            if file.filename == '':
-                flash('No file selected')
-                return redirect(request.url)
+            # Save the file
+            file_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
+            form.signature.data.save(file_path)
             
-            # Validate and save the file
-            if file and allowed_file(file.filename, config.ALLOWED_EXTENSIONS):
-                filename = secure_filename(file.filename)
-                file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-                file.save(file_path)
-                flash('Signature uploaded successfully')
-                return redirect(url_for('index'))
-
-        # Render the upload form (GET request)
-        return render_template('upload_signature.html') 
+            # Deactivate all previous signatures
+            for sig in current_user.signatures:
+                sig.is_active = False
+            
+            # Create new signature record
+            new_signature = UserSignature(
+                user_id=current_user.id,
+                signature_image_path=unique_filename,
+                is_active=True
+            )
+            
+            # Update user's primary signature path
+            current_user.signature_path = unique_filename
+            
+            db.session.add(new_signature)
+            db.session.commit()
+            
+            flash('Signature uploaded successfully!', 'success')
+            return redirect(url_for('index'))
+        
+        return render_template('upload_signature.html', form=form, active_signature=active_signature)
