@@ -54,4 +54,5 @@ class RequestApproval(db.Model):
     comments = db.Column(db.Text)
     approved_at = db.Column(db.DateTime)
     created_at = db.Column(db.DateTime, default=db.func.current_timestamp(), nullable=False)
+    pdf_path = db.Column(db.String(255), nullable=True) 
     approver = db.relationship('User', backref='approvals') 
