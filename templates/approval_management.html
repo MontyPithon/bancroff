@@ -1,7 +1,7 @@
 {% extends "layout.html" %}
 {% block content %}
 <div class="container mt-5">
-    <h2>Pending Approvals</h2>
+    <h2>Approval Management</h2>
     <div class="table-responsive">
         <table class="table table-striped">
             <thead>
@@ -10,12 +10,13 @@
                     <th>Requester</th>
                     <th>Type</th>
                     <th>Title</th>
-                    <th>Status</th>
+                    <th>Overall Status</th>
+                    <th>Approval Steps</th>
                     <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
-                {% for request in pending_requests %}
+                {% for request in requests %}
                 <tr>
                     <td>{{ request.id }}</td>
                     <td>{{ request.requester.full_name }}</td>
@@ -23,14 +24,34 @@
                     <td>{{ request.title }}</td>
                     <td>
                         <span class="badge {% if request.status == 'approved' %}bg-success
-                                         {% elif request.status == 'draft' %}bg-secondary
-                                         {% elif request.status == 'returned' %}bg-warning
-                                         {% else %}bg-primary{% endif %}">
+                                         {% elif request.status == 'rejected' %}bg-danger
+                                         {% elif request.status == 'submitted' %}bg-primary
+                                         {% else %}bg-secondary{% endif %}">
                             {{ request.status }}
                         </span>
                     </td>
                     <td>
-                        <a href="{{ url_for('review_request', request_id=request.id) }}" class="btn btn-sm btn-primary">Review</a>
+                        <div class="approval-steps">
+                            {% for step in request.approval_status %}
+                            <div class="step mb-1">
+                                <small>
+                                    <strong>{{ step.step }}:</strong>
+                                    <span class="badge {% if step.status == 'approved' %}bg-success
+                                                     {% elif step.status == 'rejected' %}bg-danger
+                                                     {% else %}bg-secondary{% endif %}">
+                                        {{ step.status }}
+                                    </span>
+                                    {% if step.approver != 'Pending' %}
+                                    <br>By: {{ step.approver }}
+                                    {% endif %}
+                                </small>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </td>
+                    <td>
+                        <a href="{{ url_for('request_approval', approval_id=request.approval_status[0].id) }}" 
+                           class="btn btn-sm btn-primary">Review</a>
                     </td>
                 </tr>
                 {% endfor %}
@@ -38,4 +59,13 @@
         </table>
     </div>
 </div>
+
+<style>
+.approval-steps {
+    max-width: 300px;
+}
+.step {
+    font-size: 0.85em;
+}
+</style>
 {% endblock %} 
