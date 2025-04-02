@@ -54,10 +54,17 @@ def setup_user_routes(app):
         if user:
             if form.validate_on_submit():
                 try:
+                    current_user_email = session['user'].get('preferred_username').lower()
+                    current_user = User.query.filter_by(email=current_user_email).first() 
                     user.full_name = form.name.data
                     user.email = form.email.data
                     user.role = Role.query.filter_by(name=form.role.data).first()
-                    user.status = form.status.data
+                    
+                    if current_user and current_user.id == user_id and form.status.data == 'deactivated':
+                        flash('You cannot deactivate your own account!', 'danger')
+                        user.status = 'active'  # Force active status for own account
+                    else:
+                        user.status = form.status.data
                     db.session.commit()
                     flash('User updated successfully!', 'success')
                     return redirect(url_for('user_list'))
@@ -98,9 +105,15 @@ def setup_user_routes(app):
         try:
             user = User.query.get(user_id)
             if user:
-                user.status = 'deactivated'
-                db.session.commit()
-                flash('User deactivated successfully!', 'success')
+                current_user_email = session['user'].get('preferred_username').lower()
+                current_user = User.query.filter_by(email=current_user_email).first()
+                
+                if current_user and current_user.id == user_id:
+                    flash('You cannot deactivate your own account!', 'danger')
+                else:
+                    user.status = 'deactivated'
+                    db.session.commit()
+                    flash('User deactivated successfully!', 'success')
             else:
                 flash('User not found!', 'danger')
         except Exception as e:
