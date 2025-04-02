@@ -1,5 +1,5 @@
 from flask import render_template, redirect, url_for, flash, request, session
-from models import db, User, RequestApproval, ApprovalStep
+from models import db, User, RequestApproval, ApprovalStep, Request
 from utils.auth_helpers import active_required
 
 def setup_approval_routes(app):
@@ -36,30 +36,33 @@ def setup_approval_routes(app):
             flash('You do not have an assigned role for approvals.', 'warning')
             return redirect(url_for('index'))
         
+        # Get all requests with their approval statuses
+        requests = Request.query.all()
         pending_approvals = []
-        role_steps = ApprovalStep.query.filter_by(approver_role_id=current_user.role_id).all()
-        step_ids = [step.id for step in role_steps]
         
-        # find all pending request for matching role
-        if step_ids:
-            approval_requests = RequestApproval.query.filter(RequestApproval.step_id.in_(step_ids),
-                                                          RequestApproval.status == 'pending').all()
+        for request in requests:
+            # Get all approval steps for this request
+            request_approvals = RequestApproval.query.join(ApprovalStep).filter(
+                RequestApproval.request_id == request.id
+            ).order_by(ApprovalStep.step_order).all()
             
-            for approval in approval_requests:
-                request = approval.request
-                request_approvals = RequestApproval.query.join(ApprovalStep).filter(
-                    RequestApproval.request_id == request.id).order_by(ApprovalStep.step_order).all()
-                    
-                current_pending = next((a for a in request_approvals if a.status == 'pending'), None)
-                if current_pending and current_pending.id == approval.id:
-                    pending_approvals.append({
-                        'approval_id': approval.id,
-                        'request': request,
-                        'request_type': request.request_type.name,
-                        'requester': request.requester.full_name,
-                        'submitted': request.created_at,
-                        'step': approval.step.name
-                    })
+            # Find the current pending step
+            current_pending = next((a for a in request_approvals if a.status == 'pending'), None)
+            
+            if current_pending:
+                pending_approvals.append({
+                    'approval_id': current_pending.id,
+                    'request': request,
+                    'request_type': request.request_type.name,
+                    'requester': request.requester.full_name,
+                    'submitted': request.created_at,
+                    'step': current_pending.step.name,
+                    'approval_status': [{
+                        'step': a.step.name,
+                        'status': a.status,
+                        'approver': a.approver.full_name if a.approver else 'Pending'
+                    } for a in request_approvals]
+                })
         
         return render_template('pending_approvals.html', pending_approvals=pending_approvals)
 
@@ -132,4 +135,43 @@ def setup_approval_routes(app):
         # GET request
         request_data = approval.request
         form_data = request_data.form_data
-        return render_template('request_approval.html', approval=approval, request=request_data, form_data=form_data) 
+        return render_template('request_approval.html', approval=approval, request=request_data, form_data=form_data)
+
+    @app.route('/approval_management')
+    @active_required
+    def approval_management():
+        """View all requests and their approval statuses"""
+        if not session.get("user"):
+            return redirect(url_for("login"))
+            
+        user_email = session['user'].get('preferred_username').lower()
+        current_user = User.query.filter_by(email=user_email).first()
+        
+        if not current_user:
+            flash('User not found. Please log in again.', 'danger')
+            return redirect(url_for('login'))
+            
+        # Check if user has an approval role
+        if current_user.role.name not in ['admin', 'advisor', 'chair', 'dean']:
+            flash('You do not have permission to view approval management.', 'warning')
+            return redirect(url_for('index'))
+        
+        # Get all requests with their approval statuses
+        requests = Request.query.all()
+        for request in requests:
+            # Get all approval steps for this request
+            request_approvals = RequestApproval.query.join(ApprovalStep).filter(
+                RequestApproval.request_id == request.id
+            ).order_by(ApprovalStep.step_order).all()
+            
+            # Add approval status information to the request
+            request.approval_status = []
+            for approval in request_approvals:
+                request.approval_status.append({
+                    'step': approval.step.name,
+                    'status': approval.status,
+                    'approver': approval.approver.full_name if approval.approver else 'Pending',
+                    'comments': approval.comments
+                })
+        
+        return render_template('approval_management.html', requests=requests) 

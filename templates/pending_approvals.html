@@ -14,6 +14,7 @@
                         <th>Requester</th>
                         <th>Submission Date</th>
                         <th>Current Step</th>
+                        <th>Approval Status</th>
                         <th>Action</th>
                     </tr>
                 </thead>
@@ -25,6 +26,25 @@
                         <td>{{ approval.requester }}</td>
                         <td>{{ approval.submitted.strftime('%Y-%m-%d') }}</td>
                         <td>{{ approval.step }}</td>
+                        <td>
+                            <div class="approval-steps">
+                                {% for step in approval.approval_status %}
+                                <div class="step mb-1">
+                                    <small>
+                                        <strong>{{ step.step }}:</strong>
+                                        <span class="badge {% if step.status == 'approved' %}bg-success
+                                                         {% elif step.status == 'rejected' %}bg-danger
+                                                         {% else %}bg-secondary{% endif %}">
+                                            {{ step.status }}
+                                        </span>
+                                        {% if step.approver != 'Pending' %}
+                                        <br>By: {{ step.approver }}
+                                        {% endif %}
+                                    </small>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </td>
                         <td>
                             <a href="{{ url_for('request_approval', approval_id=approval.approval_id) }}" class="btn btn-primary btn-sm">Review</a>
                         </td>
@@ -41,4 +61,13 @@
     
     <a href="{{ url_for('index') }}" class="btn btn-secondary">Back to Home</a>
 </div>
+
+<style>
+.approval-steps {
+    max-width: 300px;
+}
+.step {
+    font-size: 0.85em;
+}
+</style>
 {% endblock %}
