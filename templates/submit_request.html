@@ -1,0 +1,23 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="container mt-5">
+    <h2>Submit New Request</h2>
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Select Form Type</h5>
+                    <div class="list-group">
+                        <a href="{{ url_for('email_alias_form') }}" class="list-group-item list-group-item-action">
+                            Email Alias Request
+                        </a>
+                        <a href="{{ url_for('verification_of_enrollment_form') }}" class="list-group-item list-group-item-action">
+                            Verification of Enrollment
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

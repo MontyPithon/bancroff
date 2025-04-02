@@ -1,0 +1,44 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="container mt-5">
+    <h2>My Requests</h2>
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Request ID</th>
+                    <th>Type</th>
+                    <th>Title</th>
+                    <th>Status</th>
+                    <th>Created Date</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for request in requests %}
+                <tr>
+                    <td>{{ request.id }}</td>
+                    <td>{{ request.type.name }}</td>
+                    <td>{{ request.title }}</td>
+                    <td>
+                        <span class="badge {% if request.status == 'approved' %}bg-success
+                                         {% elif request.status == 'draft' %}bg-secondary
+                                         {% elif request.status == 'returned' %}bg-warning
+                                         {% else %}bg-primary{% endif %}">
+                            {{ request.status }}
+                        </span>
+                    </td>
+                    <td>{{ request.created_at.strftime('%Y-%m-%d') }}</td>
+                    <td>
+                        <a href="{{ url_for('view_request', request_id=request.id) }}" class="btn btn-sm btn-info">View</a>
+                        {% if request.status == 'draft' %}
+                        <a href="{{ url_for('edit_request', request_id=request.id) }}" class="btn btn-sm btn-warning">Edit</a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %} 

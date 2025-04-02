@@ -1,0 +1,19 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="container mt-5">
+    <h2>PDF Preview</h2>
+    <div class="card">
+        <div class="card-body">
+            <h5 class="card-title">{{ request.title }}</h5>
+            <div class="mb-3">
+                <a href="{{ url_for('download_pdf', request_id=request.id) }}" class="btn btn-primary">Download PDF</a>
+            </div>
+            <div class="pdf-preview-container" style="height: 800px;">
+                <iframe src="{{ url_for('view_pdf', request_id=request.id) }}" 
+                        style="width: 100%; height: 100%; border: none;">
+                </iframe>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

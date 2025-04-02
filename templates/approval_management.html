@@ -1,0 +1,41 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="container mt-5">
+    <h2>Pending Approvals</h2>
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Request ID</th>
+                    <th>Requester</th>
+                    <th>Type</th>
+                    <th>Title</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for request in pending_requests %}
+                <tr>
+                    <td>{{ request.id }}</td>
+                    <td>{{ request.requester.full_name }}</td>
+                    <td>{{ request.type.name }}</td>
+                    <td>{{ request.title }}</td>
+                    <td>
+                        <span class="badge {% if request.status == 'approved' %}bg-success
+                                         {% elif request.status == 'draft' %}bg-secondary
+                                         {% elif request.status == 'returned' %}bg-warning
+                                         {% else %}bg-primary{% endif %}">
+                            {{ request.status }}
+                        </span>
+                    </td>
+                    <td>
+                        <a href="{{ url_for('review_request', request_id=request.id) }}" class="btn btn-sm btn-primary">Review</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %} 
