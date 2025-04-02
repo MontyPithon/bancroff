@@ -89,9 +89,17 @@ def setup_user_routes(app):
             return redirect(url_for("login"))
         try:
             user = User.query.get(user_id)
-            db.session.delete(user)
-            db.session.commit()
-            flash('User deleted successfully!', 'success')
+            if user:
+                current_user_email = session['user'].get('preferred_username').lower()
+                current_user = User.query.filter_by(email=current_user_email).first()
+                if current_user and current_user.id == user_id:
+                    flash('You cannot delete your own account!', 'danger')
+                else:
+                    db.session.delete(user)
+                    db.session.commit()
+                    flash('User deleted successfully!', 'success')
+            else:
+                flash('User not found!', 'danger')
         except Exception as e:
             flash(f'An error occurred: {str(e)}', 'danger')
         return redirect(url_for('user_list'))
