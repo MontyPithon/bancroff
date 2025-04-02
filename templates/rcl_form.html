@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UH Reduced Course Load (RCL) Form</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            text-align: center;
+            border-bottom: 2px solid #C8102E;
+        }
+        .logo {
+            max-width: 250px;
+            margin-bottom: 10px;
+        }
+        h1 {
+            color: #C8102E;
+        }
+        .form-section {
+            margin: 20px 0;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        label {
+            display: inline;
+            margin: 8px 0 4px;
+        }
+        input[type="text"], input[type="number"], input[type="date"] {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            box-sizing: border-box;
+        }
+        .submit-btn {
+            background-color: #C8102E;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .note {
+            font-style: italic;
+            font-size: 1em;
+            color: #555;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <img src="https://uh.edu/brand/_img/uh-vert-full-color-rgb.png" alt="University of Houston Logo" class="logo">
+        <h1>Reduced Course Load (RCL) Form for Graduate Students</h1>
+        <p>International Student and Scholar Services Office</p>
+    </div>
+
+    <form id="rclForm" action="{{ url_for('rcl_form') }}" method="post">
+        <p class="note">F-1 students are required to maintain full-time student status every semester they are in the United States. Graduate students need to complete a minimum of 9 hours to maintain their immigration status. Students may have additional hours that are academically required 
+            by their department or for a tuition waiver. Classes during the summer are optional unless it is the first semester at UH; then an F-1 
+            student has to complete 6 hours (i.e. full-time for summer). The following form must be completed before dropping below full-time 
+            hours after start of classes. Note: Dropping below full-time hours may involve the loss of resident tuition and GTF.</p>
+
+        <div class="form-section">
+            <h2>1. ACADEMIC DIFFICULTY (FIRST SEMESTER ONLY)</h2>
+            <p class="note">RCL for valid academic difficulties is allowed once and only in the first semester when starting a new degree program. A 
+                minimum of 6hrs will still have to completed. This option cannot be used or submitted prior to ORD</p>
+            
+            <h3>Initial Adjustment Issues (IAI)</h3>
+            <div>
+                <input type="checkbox" id="english" name="iai[]" value="english">
+                <label for="english">the English language</label>
+            </div>
+            <div>
+                <input type="checkbox" id="reading" name="iai[]" value="reading">
+                <label for="reading" >reading requirements</label>
+            </div>
+            <div>
+                <input type="checkbox" id="teaching" name="iai[]" value="teaching">
+                <label for="teaching-methods" >unfamiliarity with American teaching methods</label>
+            </div>
+            
+            <h3>Improper Course Level Placement (ICLP)</h3>
+            <div>
+                <input type="checkbox" id="iclp" name="reason" value="iclp">
+                <label for="iclp" >I am having difficulty with my class(es) due to improper course level placement which may include not having the prerequisites or 
+                    insufficient background to complete the course at this time.</label>
+            </div>
+        </div>
+
+        <div class="form-section">
+            <h2>2. MEDICAL REASON</h2>
+            <div>
+                <input type="checkbox" id="medical" name="reason" value="medical">
+                <label for="medical" >Valid medical reason must be proven with a supporting letter from a licensed medical doctor, clinical psychologist, or doctor of 
+                    osteopathy. The letter has to contain the following information: written in English on a letterhead, signed in ink, the recommended 
+                    credit hours of enrollment, when the below hours should begin and end (if known), details of when student first saw the doctor, and 
+                    when they advised the student to withdraw from course(s). Medical excuses must be renewed each semester. You are only allowed 
+                    to accumulate 12 months of reduced course load for medical reasons during any given degree level. <b>Zero hours are allowed under 
+                    this provision of the law only if it is clearly recommended by the licensed medical professional</b></label>
+            </div>
+            <div>
+                <input type="checkbox" id="letter" name="letter_attached">
+                <label for="letter" >Letter from licensed medical professional is attached</label>
+            </div>
+            <p class="note">The letter must be written in English on a letterhead, signed in ink, include recommended credit hours, timing details, etc.</p>
+        </div>
+
+        <div class="form-section">
+            <h2>3. FULL-TIME EQUIVALENCE FOR FINAL SEMESTER</h2>
+            <div>
+                <input type="radio" id="non_thesis" name="track" value="non_thesis">
+                <label for="non_thesis" >Reduced Course Load for Non-Thesis Track</label>
+                <div>
+                    This is my expected final semester and I only need <input type="number" name="non_thesis_hours" min="1" max="8" style="width: 60px;"> hours of course work to 
+                    complete my degree program. I understand that if I am granted a reduced course load and fail to complete my degree as planned, 
+                    I may be in violation of my legal status and would need to apply for reinstatement. I may be required to take 9 hours in subsequent 
+                    semesters. (If you need only one course to finish your program of study, it cannot be taken through online/distance education).
+                </div>
+            </div>
+            <div>
+                <input type="radio" id="thesis" name="track" value="thesis">
+                <label for="thesis" >Full-time Equivalence for Thesis/Dissertation Track</label>
+                <div>
+                    I am expecting this semester to be my final semester. I have completed all 
+                    course work and I am only working on my thesis or dissertation. I am approved to take
+                    <input type="number" name="thesis_hours" min="1" max="8" style="width: 60px;"> hours of thesis/dissertation. 
+                    This option will classify me as having full-time equivalency for SEVIS reporting. If I fail to complete my thesis/dissertation I
+                    may be required to take 9 hours in subsequent semesters
+                </div>
+            </div>
+        </div>
+
+        <div class="form-section">
+            <h2>Semester Information</h2>
+        
+            <div> I am applying for a reduced course load for the
+                <div>
+                    <input type="radio" id="fall" name="semester" value="fall">
+                    <label for="fall" >Fall semester of 20</label>
+                    <input type="text" name="fall_year" style="width: 60px;" maxlength="2">
+                </div>
+                <div>
+                    <input type="radio" id="spring" name="semester" value="spring">
+                    <label for="spring" >Spring semester of 20</label>
+                    <input type="text" name="spring_year" style="width: 60px;" maxlength="2">
+                </div>
+            </div>
+
+            <h3>Course Drop Information</h3>
+            <label>I want to drop the following class(es):</label>
+            <input type="text" name="course1" placeholder="Course 1">
+            <input type="text" name="course2" placeholder="Course 2">
+            <input type="text" name="course3" placeholder="Course 3">
+            
+            <label>After the drop, I will have a total of <input type="number" name="remaining_hours" min="1" max="9" style="width: 60px;"> hours</label>
+        </div>
+
+        <div class="form-section">
+            <h2>Student Information</h2>
+            
+            <input type="hidden" id="name" name="name" value="{{ session['name'] }}" required>
+            
+            <label for="ps_id">PS ID:</label>
+            <input type="text" id="ps_id" name="ps_id" required>
+            
+            <input type="hidden" id="signature_date" name="signature_date">
+        </div>
+
+        <div class="signature-section">
+            <h2>Academic Certifying Signatures</h2>
+            <p class="note">This form requires signatures from your Academic Advisor, Chair, and College Dean</p>
+            <p class="note">Note: This electronic form will be submitted for approval after submission</p>
+        </div>
+        {% if form_data and form_data.signature_path %}
+        <div class="row mb-3">
+            <div class="col-md-4"><strong>Requester Signature:</strong></div>
+            <div class="col-md-8">
+                <img src="{{ url_for('static', filename='uploads/' + form_data.signature_path) }}" 
+                    alt="Requester Signature" style="max-width: 300px; max-height: 100px;">
+            </div>
+        </div>
+        {% endif %}
+        <button type="submit" class="submit-btn">Submit Form</button>
+    </form>
+</body>
+</html>
