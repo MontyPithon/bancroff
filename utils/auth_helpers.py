@@ -13,6 +13,16 @@ def admin_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
+def management_access_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        allowed_roles = ["admin", "chair", "dean", "advisor"]
+        if session.get("role") not in allowed_roles:
+            flash("You do not have permission to access this page.", "danger")
+            return redirect(url_for("index"))
+        return f(*args, **kwargs)
+    return decorated_function
+
 def active_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):

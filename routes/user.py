@@ -1,14 +1,14 @@
 from flask import render_template, redirect, url_for, flash, session, request
 from models import db, User, Role, UserSignature
 from forms import UserForm
-from utils.auth_helpers import admin_required, active_required
+from utils.auth_helpers import admin_required, active_required, management_access_required
 from forms.user_forms import SignatureUploadForm
 import config
 from werkzeug.utils import secure_filename
 import os
 def setup_user_routes(app):
     @app.route('/users')
-    @admin_required
+    @management_access_required
     @active_required
     def user_list():
         if not session.get("user"):
@@ -17,7 +17,7 @@ def setup_user_routes(app):
         return render_template('user_list.html', users=users)
 
     @app.route('/create_user', methods=['GET', 'POST'])
-    @admin_required
+    @management_access_required
     @active_required
     def create_user():
         if not session.get("user"):
@@ -43,7 +43,7 @@ def setup_user_routes(app):
         return render_template('create_user.html', form=form)
 
     @app.route('/update_user/<int:user_id>', methods=['GET', 'POST'])
-    @admin_required
+    @management_access_required
     @active_required
     def update_user(user_id):
         if not session.get("user"):
@@ -82,7 +82,7 @@ def setup_user_routes(app):
         return render_template('update_user.html', form=form, user=user)
 
     @app.route('/delete_user/<int:user_id>', methods=['POST'])
-    @admin_required
+    @management_access_required
     @active_required
     def delete_user(user_id):
         if not session.get("user"):
@@ -105,7 +105,7 @@ def setup_user_routes(app):
         return redirect(url_for('user_list'))
 
     @app.route('/deactivate_user/<int:user_id>', methods=['POST'])
-    @admin_required
+    @management_access_required
     @active_required
     def deactivate_user(user_id):
         if not session.get("user"):
@@ -129,7 +129,7 @@ def setup_user_routes(app):
         return redirect(url_for('user_list'))
 
     @app.route('/reactivate_user/<int:user_id>', methods=['POST'])
-    @admin_required
+    @management_access_required
     @active_required
     def reactivate_user(user_id):
         if not session.get("user"):
