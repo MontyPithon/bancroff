@@ -1,72 +1,107 @@
 {% extends "layout.html" %}
 {% block content %}
-<!-- Jumbotron for the welcome message -->
-<div class="jumbotron mt-5">
-    <h1 class="display-4">Welcome to the User Management System!</h1>
-    <p class="lead">Manage users, roles, and access control with ease.</p>
-    <hr class="my-4">
-    {% if session.get('user') and session.get('role') == 'admin' %}
-    <p>Use the navigation bar to create, update, or delete users and manage roles.</p>
-    <!-- Button to create a new user -->
-    <a class="btn btn-primary btn-lg" href="{{ url_for('create_user') }}" role="button">Create User</a>
+<div class="container mt-5">
+    <!-- Welcome Section -->
+    <div class="row mb-5">
+        <div class="col-12">
+            <h1 class="display-4 mb-3">Welcome to the Academic Request Portal</h1>
+            <p class="lead">Submit and track your academic requests in one place.</p>
+            <hr class="my-4">
+        </div>
+    </div>
+
+    <!-- Main Actions -->
+    <div class="row g-4 mb-5">
+        <!-- Submit Request Card -->
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Submit Request</h5>
+                    <p class="card-text">Choose a form type to submit a new request.</p>
+                    <div class="d-grid gap-2">
+                        <a href="{{ url_for('rcl_form') }}" class="btn btn-primary">Reduced Course Load</a>
+                        <a href="{{ url_for('withdrawal_form') }}" class="btn btn-outline-primary">Course Withdrawal</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Track Requests Card -->
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">My Requests</h5>
+                    <p class="card-text">View and track your submitted requests.</p>
+                    <div class="d-grid">
+                        <a href="{{ url_for('my_requests') }}" class="btn btn-primary">View Requests</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Signature Card -->
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Signature</h5>
+                    <p class="card-text">Manage your signature for form submissions.</p>
+                    <div class="d-grid">
+                        <a href="{{ url_for('upload_signature') }}" class="btn btn-primary">Manage Signature</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Section -->
+    {% if session.get('user') and session.get('role') in ['admin', 'advisor', 'chair', 'dean'] %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Administrative Actions</h5>
+                    <div class="d-flex flex-wrap gap-2">
+                        <a href="{{ url_for('pending_approvals') }}" class="btn btn-success">View Pending Approvals</a>
+                        {% if session.get('role') == 'admin' %}
+                            <a href="{{ url_for('create_user') }}" class="btn btn-primary">Create User</a>
+                            <a href="{{ url_for('manage_users') }}" class="btn btn-primary">Manage Users</a>
+                            <a href="{{ url_for('manage_roles') }}" class="btn btn-outline-primary">Manage Roles</a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
     {% endif %}
 </div>
 
-<script>
-    document.addEventListener('DOMContentLoaded', (event) => {
-        // Fetch user details from session and populate the form fields
-        fetch('/api/get_user_details')
-            .then(response => response.json())
-            .then(data => {
-                document.getElementById('firstName').value = data.firstName;
-                document.getElementById('lastName').value = data.lastName;
-                document.getElementById('submissionDate').value = new Date().toISOString().split('T')[0];
-            });
-    });
+<style>
+/* Simple hover effect for cards */
+.card {
+    transition: box-shadow 0.3s ease-in-out;
+}
+.card:hover {
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
 
-
-    document.getElementById('emailAliasForm').addEventListener('submit', function(event) {
-        event.preventDefault();
-        const formData = new FormData(this);
-        // Placeholder for backend integration: Update the database with the email alias request
-        fetch('/submit_email_alias', {
-            method: 'POST',
-            body: formData,
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.message) {
-                alert(data.message);
-            } else {
-                alert('An error occurred while submitting the email alias request.');
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('An error occurred while submitting the email alias request.');
-        });
-    });
-
-    document.getElementById('verificationOfEnrollmentForm').addEventListener('submit', function(event) {
-        event.preventDefault();
-        const formData = new FormData(this);
-        // Placeholder for backend integration: Update the database with the verification of enrollment request
-        fetch('/submit_verification_of_enrollment', {
-            method: 'POST',
-            body: formData,
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.message) {
-                alert(data.message);
-            } else {
-                alert('An error occurred while submitting the verification of enrollment request.');
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('An error occurred while submitting the verification of enrollment request.');
-        });
-    });
-</script>
+/* Style for nav tabs */
+.nav-tabs {
+    border-bottom: none;
+    margin-top: 0.5rem;
+}
+.nav-tabs .nav-link {
+    color: #6c757d;
+    border: 1px solid #dee2e6;
+    margin-right: 0.25rem;
+}
+.nav-tabs .nav-link.active {
+    color: #0d6efd;
+    background-color: #fff;
+    border-color: #0d6efd;
+}
+.nav-tabs .nav-link:hover {
+    border-color: #0d6efd;
+    isolation: isolate;
+}
+</style>
 {% endblock %}
