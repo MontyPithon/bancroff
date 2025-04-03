@@ -258,11 +258,6 @@ def add_email_alias_voe_data():
             db.session.commit()
             print("Verification of Enrollment request type added")
 
-        # If you need roles and workflows, add them here, similar to RCL or Withdrawal.
-        # For example:
-        # advisor_role = Role.query.filter_by(name='advisor').first()
-        # ...
-        # Then create ApprovalWorkflow + ApprovalStep for each request type if needed.
 
     except Exception as e:
         print(f"An error occurred while adding Email Alias & VOE data: {e}")
