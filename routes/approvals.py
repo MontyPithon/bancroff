@@ -56,6 +56,48 @@ def setup_approval_routes(app):
             
             # Include all requests, not just those with pending steps
             if current_step:
+                # Check if current user can approve this step
+                can_approve = False
+                
+                # Debug information
+                print(f"\n--- DEBUG APPROVAL PERMISSIONS ---")
+                print(f"Request ID: {req.id}, Title: {req.title}")
+                print(f"User: {current_user.full_name} (ID: {current_user.id})")
+                print(f"User Role: {current_user.role.name} (ID: {current_user.role_id})")
+                print(f"Current Step: {current_step.step.name}")
+                if hasattr(current_step.step, 'approver_role') and current_step.step.approver_role:
+                    print(f"Step requires role: {current_step.step.approver_role.name} (ID: {current_step.step.approver_role_id})")
+                else:
+                    print(f"Step approver_role is None, ID: {current_step.step.approver_role_id}")
+                print(f"Step Status: {current_step.status}")
+                print(f"Request Status: {req.status}")
+                
+                # Allow approvals for both 'pending' and 'submitted' status
+                if current_step.status == 'pending' or req.status == 'submitted':
+                    # Admin can approve any step
+                    if current_user.role.name == 'admin':
+                        can_approve = True
+                        print(f"✓ Admin can approve (role: {current_user.role.name})")
+                    # Check if user's role name matches the required approver role name
+                    elif current_step.step.approver_role and current_user.role.name == current_step.step.approver_role.name:
+                        can_approve = True
+                        print(f"✓ Role name match: {current_user.role.name} == {current_step.step.approver_role.name}")
+                    # Check if user's role ID matches the required approver role ID
+                    elif current_user.role_id == current_step.step.approver_role_id:
+                        can_approve = True
+                        print(f"✓ Role ID match: {current_user.role_id} == {current_step.step.approver_role_id}")
+                    else:
+                        print(f"✗ No permission match found")
+                
+                print(f"Final can_approve: {can_approve}")
+                print(f"-------------------------------\n")
+                
+                # Get the step's approver role information for debug purposes
+                approver_role_info = {
+                    'id': current_step.step.approver_role_id,
+                    'name': current_step.step.approver_role.name if hasattr(current_step.step, 'approver_role') and current_step.step.approver_role else "Unknown"
+                }
+                
                 all_approvals.append({
                     'approval_id': current_step.id,
                     'request': req,
@@ -64,11 +106,19 @@ def setup_approval_routes(app):
                     'submitted': req.created_at,
                     'step': current_step.step.name,
                     'status': req.status,  # Include overall request status
+                    'can_approve': can_approve,  # Flag indicating if current user can approve
                     'approval_status': [{
                         'step': a.step.name,
                         'status': a.status,
                         'approver': a.approver.full_name if a.approver else 'Pending'
-                    } for a in request_approvals]
+                    } for a in request_approvals],
+                    'debug_info': {
+                        'user_role_name': current_user.role.name,
+                        'user_role_id': current_user.role_id,
+                        'step_approver_role_name': approver_role_info['name'],
+                        'step_approver_role_id': approver_role_info['id'],
+                        'step_status': current_step.status
+                    }
                 })
         
         return render_template('pending_approvals.html', pending_approvals=all_approvals)
@@ -92,13 +142,29 @@ def setup_approval_routes(app):
             flash('Approval request not found.', 'danger')
             return redirect(url_for('pending_approvals'))
         
+        # Get the approver role for this step
+        approver_role = approval.step.approver_role
+
         # Check if the current user's role matches the required approver role
-        if current_user.role_id != approval.step.approver_role_id:
-            flash('You do not have permission to approve this request.', 'danger')
+        can_approve = False
+        # Admin can approve any step
+        if current_user.role.name == 'admin':
+            can_approve = True
+        # Check if user's role name matches the required approver role name
+        elif approver_role and current_user.role.name == approver_role.name:
+            can_approve = True
+        # Check if user's role ID matches the required approver role ID (legacy check)
+        elif current_user.role_id == approval.step.approver_role_id:
+            can_approve = True
+            
+        if not can_approve:
+            role_required = approver_role.name if approver_role else "Unknown"
+            flash(f'You do not have permission to approve this request. Required role: {role_required}', 'danger')
             return redirect(url_for('pending_approvals'))
         
-        if approval.status != 'pending':
-            flash('This request has already been processed.', 'warning')
+        # Allow approvals for both 'pending' and 'submitted' status
+        if approval.status != 'pending' and approval.request.status != 'submitted':
+            flash('This request has already been processed or is not in an approvable status.', 'warning')
             return redirect(url_for('pending_approvals'))
         
         if flask_request.method == 'POST':

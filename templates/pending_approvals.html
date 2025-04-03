@@ -57,17 +57,24 @@
                             </div>
                         </td>
                         <td>
-                            {% if approval.status == 'pending' %}
-                                <a href="{{ url_for('request_approval', approval_id=approval.approval_id) }}" class="btn btn-primary btn-sm">Review</a>
-                            {% elif approval.status == 'approved' %}
-                                <button class="btn btn-success btn-sm" disabled>Approved</button>
-                            {% elif approval.status == 'rejected' %}
-                                <button class="btn btn-danger btn-sm" disabled>Rejected</button>
-                            {% elif approval.status == 'returned' %}
-                                <button class="btn btn-warning btn-sm" disabled>Returned</button>
-                            {% else %}
-                                <button class="btn btn-secondary btn-sm" disabled>{{ approval.status|capitalize }}</button>
-                            {% endif %}
+                            <div class="d-flex flex-column">
+                                {% if (approval.status == 'pending' or approval.status == 'submitted') and approval.can_approve %}
+                                    <a href="{{ url_for('request_approval', approval_id=approval.approval_id) }}" 
+                                       class="btn btn-primary btn-sm mb-1">
+                                       <i class="fas fa-check-circle"></i> Review Now
+                                    </a>
+                                {% elif approval.status == 'pending' or approval.status == 'submitted' %}
+                                    <button class="btn btn-secondary btn-sm mb-1" disabled>Awaiting Review</button>
+                                {% elif approval.status == 'approved' %}
+                                    <button class="btn btn-success btn-sm mb-1">Approved</button>
+                                {% elif approval.status == 'rejected' %}
+                                    <button class="btn btn-danger btn-sm mb-1">Rejected</button>
+                                {% elif approval.status == 'returned' %}
+                                    <button class="btn btn-warning btn-sm mb-1">Returned</button>
+                                {% else %}
+                                    <button class="btn btn-secondary btn-sm mb-1">{{ approval.status|capitalize }}</button>
+                                {% endif %}
+                            </div>
                         </td>
                     </tr>
                     {% endfor %}

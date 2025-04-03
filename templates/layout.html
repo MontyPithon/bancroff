@@ -26,7 +26,7 @@
                     </li>
                     {% endif %}
                     
-                    {% if session.get('user') and session.get('role') in ['admin', 'chair', 'dean', 'advisor'] %}
+                    {% if session.get('user') and session.get('role') == 'admin' %}
                         <li class="nav-item">
                             <a class="nav-link" href="{{ url_for('create_user') }}">Create User</a>
                         </li>
@@ -34,7 +34,7 @@
                             <a class="nav-link" href="{{ url_for('user_list') }}">Manage Users</a>
                         </li>
                     {% endif %}
-                    {% if session.get('user') and session.get('role') != 'basic_user' %}
+                    {% if session.get('user') and session.get('role') in ['admin', 'chair', 'dean', 'advisor'] %}
                         <li class="nav-item">
                             <a class="nav-link" href="{{ url_for('pending_approvals') }}">All Forms</a>
                         </li>
