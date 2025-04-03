@@ -1,0 +1,43 @@
+{% extends 'layout.html' %}
+
+{% block title %}Verification of Enrollment{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+  <h2>Verification of Enrollment</h2>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+          {{ message }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  <form method="POST" action="{{ url_for('submit_voe') }}">
+    <!-- Term / Semester -->
+    <div class="mb-3">
+      <label for="semester" class="form-label">Term / Semester</label>
+      <input type="text" name="semester" id="semester" class="form-control" required>
+    </div>
+
+    <!-- Student ID -->
+    <div class="mb-3">
+      <label for="studentID" class="form-label">Student ID</label>
+      <input type="text" name="studentID" id="studentID" class="form-control" required>
+    </div>
+
+    <!-- Additional Info / Reason -->
+    <div class="mb-3">
+      <label for="extraInfo" class="form-label">Additional Info (optional)</label>
+      <textarea name="extraInfo" id="extraInfo" class="form-control"></textarea>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Submit Request</button>
+    <a href="{{ url_for('my_requests') }}" class="btn btn-secondary">Cancel</a>
+  </form>
+</div>
+{% endblock %}
