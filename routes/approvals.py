@@ -88,6 +88,7 @@ def setup_approval_routes(app):
             flash('Approval request not found.', 'danger')
             return redirect(url_for('pending_approvals'))
         
+        # Check if the current user's role matches the required approver role
         if current_user.role_id != approval.step.approver_role_id:
             flash('You do not have permission to approve this request.', 'danger')
             return redirect(url_for('pending_approvals'))
@@ -137,6 +138,17 @@ def setup_approval_routes(app):
                 approval.request.status = 'rejected'
                 db.session.commit()
                 flash('Request has been rejected.', 'warning')
+
+            elif action == 'return':
+                # The 'returned' state allows the user to fix or clarify the request
+                approval.status = 'returned'
+                approval.comments = comments
+                approval.approver_id = current_user.id
+                approval.approved_at = db.func.current_timestamp()
+                approval.request.status = 'returned'  # Or keep separate states if you prefer
+                db.session.commit()
+                
+                flash('Request has been returned to the requester for more information.', 'info')
             
             return redirect(url_for('pending_approvals'))
         
@@ -227,7 +239,8 @@ def generate_pdf_for_approval(approval_id):
         return None, f"Error reading LaTeX template: {e}"
     
     # Replace placeholders
-    filled_template = (template_content
+    filled_template = (
+        template_content
         .replace("{{firstName}}", first_name)
         .replace("{{lastName}}", last_name)
         .replace("{{approvalNote}}", approval_note)
