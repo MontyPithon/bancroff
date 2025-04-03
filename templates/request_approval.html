@@ -29,6 +29,22 @@
                 <div class="col-md-8">{{ approval.step.name }}</div>
             </div>
             
+            <!-- Previous approvals PDF links -->
+            {% set previous_approvals = request.approvals|selectattr('status', 'equalto', 'approved')|list %}
+            {% if previous_approvals %}
+            <div class="row mb-3">
+                <div class="col-md-4"><strong>Previous Approval PDFs:</strong></div>
+                <div class="col-md-8">
+                    <a href="{{ url_for('pdf_routes.view_pdf', request_id=request.id) }}" class="btn btn-info btn-sm me-2" target="_blank">
+                        <i class="fas fa-file-pdf"></i> View Latest PDF
+                    </a>
+                    <a href="{{ url_for('pdf_routes.download_pdf', request_id=request.id) }}" class="btn btn-outline-secondary btn-sm">
+                        <i class="fas fa-download"></i> Download PDF
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+            
             <hr>
             <h3>Form Details</h3>
             <div class="card mb-3">

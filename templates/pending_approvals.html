@@ -16,7 +16,7 @@
                         <th>Current Step</th>
                         <th>Status</th>
                         <th>Approval Progress</th>
-                        <th>Action</th>
+                        <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -57,17 +57,27 @@
                             </div>
                         </td>
                         <td>
-                            {% if approval.status == 'pending' %}
-                                <a href="{{ url_for('request_approval', approval_id=approval.approval_id) }}" class="btn btn-primary btn-sm">Review</a>
-                            {% elif approval.status == 'approved' %}
-                                <button class="btn btn-success btn-sm" disabled>Approved</button>
-                            {% elif approval.status == 'rejected' %}
-                                <button class="btn btn-danger btn-sm" disabled>Rejected</button>
-                            {% elif approval.status == 'returned' %}
-                                <button class="btn btn-warning btn-sm" disabled>Returned</button>
-                            {% else %}
-                                <button class="btn btn-secondary btn-sm" disabled>{{ approval.status|capitalize }}</button>
-                            {% endif %}
+                            <div class="d-flex flex-column">
+                                {% if approval.status == 'pending' %}
+                                    <a href="{{ url_for('request_approval', approval_id=approval.approval_id) }}" class="btn btn-primary btn-sm mb-1">Review</a>
+                                {% elif approval.status == 'approved' %}
+                                    <button class="btn btn-success btn-sm mb-1" disabled>Approved</button>
+                                {% elif approval.status == 'rejected' %}
+                                    <button class="btn btn-danger btn-sm mb-1" disabled>Rejected</button>
+                                {% elif approval.status == 'returned' %}
+                                    <button class="btn btn-warning btn-sm mb-1" disabled>Returned</button>
+                                {% else %}
+                                    <button class="btn btn-secondary btn-sm mb-1" disabled>{{ approval.status|capitalize }}</button>
+                                {% endif %}
+                                <!-- PDF View button - Only show if at least one approval step is approved -->
+                                {% if approval.approval_status|selectattr('status', 'equalto', 'approved')|list|length > 0 %}
+                                    <a href="{{ url_for('pdf_routes.view_pdf', request_id=approval.request.id) }}" class="btn btn-info btn-sm mb-1" target="_blank">View PDF</a>
+                                    <a href="{{ url_for('pdf_routes.download_pdf', request_id=approval.request.id) }}" class="btn btn-outline-secondary btn-sm">Download PDF</a>
+                                {% endif %}
+                                <a href="{{ url_for('view_request_history', request_id=approval.request.id) }}" class="btn btn-outline-primary btn-sm mt-1">
+                                    <i class="fas fa-history"></i> History
+                                </a>
+                            </div>
                         </td>
                     </tr>
                     {% endfor %}

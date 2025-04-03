@@ -1,0 +1,111 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1>Request History</h1>
+    
+    <div class="card mb-4">
+        <div class="card-header">
+            <h2>{{ request.title }}</h2>
+        </div>
+        <div class="card-body">
+            <div class="row mb-3">
+                <div class="col-md-4"><strong>Request Type:</strong></div>
+                <div class="col-md-8">{{ request.request_type.name }}</div>
+            </div>
+            
+            <div class="row mb-3">
+                <div class="col-md-4"><strong>Requester:</strong></div>
+                <div class="col-md-8">{{ request.requester.full_name }}</div>
+            </div>
+            
+            <div class="row mb-3">
+                <div class="col-md-4"><strong>Submission Date:</strong></div>
+                <div class="col-md-8">{{ request.created_at.strftime('%Y-%m-%d') }}</div>
+            </div>
+            
+            <div class="row mb-3">
+                <div class="col-md-4"><strong>Status:</strong></div>
+                <div class="col-md-8">
+                    <span class="badge {% if request.status == 'approved' %}bg-success
+                                   {% elif request.status == 'rejected' %}bg-danger
+                                   {% elif request.status == 'pending' %}bg-primary
+                                   {% elif request.status == 'returned' %}bg-warning
+                                   {% else %}bg-secondary{% endif %}">
+                        {{ request.status|capitalize }}
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h3>Approval History</h3>
+        </div>
+        <div class="card-body">
+            {% if has_pdfs %}
+            <div class="mb-4">
+                <h4>Latest Approval PDF</h4>
+                <div class="d-flex">
+                    <a href="{{ url_for('pdf_routes.view_pdf', request_id=request.id) }}" target="_blank" class="btn btn-info me-2">
+                        <i class="fas fa-file-pdf"></i> View Latest PDF
+                    </a>
+                    <a href="{{ url_for('pdf_routes.download_pdf', request_id=request.id) }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-download"></i> Download PDF
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+            
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Step</th>
+                            <th>Status</th>
+                            <th>Approver</th>
+                            <th>Date</th>
+                            <th>Comments</th>
+                            <th>PDF</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for approval in approvals %}
+                        <tr>
+                            <td>{{ approval.step.name }}</td>
+                            <td>
+                                <span class="badge {% if approval.status == 'approved' %}bg-success
+                                               {% elif approval.status == 'rejected' %}bg-danger
+                                               {% elif approval.status == 'returned' %}bg-warning
+                                               {% else %}bg-secondary{% endif %}">
+                                    {{ approval.status|capitalize }}
+                                </span>
+                            </td>
+                            <td>{{ approval.approver.full_name if approval.approver else 'Pending' }}</td>
+                            <td>{{ approval.approved_at.strftime('%Y-%m-%d') if approval.approved_at else '-' }}</td>
+                            <td>{{ approval.comments if approval.comments else '-' }}</td>
+                            <td>
+                                {% if approval.pdf_path %}
+                                <a href="{{ url_for('pdf_routes.view_pdf', request_id=request.id) }}" target="_blank" class="btn btn-sm btn-info">
+                                    <i class="fas fa-file-pdf"></i> View
+                                </a>
+                                {% else %}
+                                -
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <div class="mt-4">
+        <a href="{{ url_for('pending_approvals') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Back to All Forms
+        </a>
+    </div>
+</div>
+{% endblock %} 

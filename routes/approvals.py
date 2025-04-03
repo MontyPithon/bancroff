@@ -92,9 +92,14 @@ def setup_approval_routes(app):
             flash('Approval request not found.', 'danger')
             return redirect(url_for('pending_approvals'))
         
+        # Get the approver role for this step
+        approver_role = approval.step.approver_role
+
         # Check if the current user's role matches the required approver role
-        if current_user.role_id != approval.step.approver_role_id:
-            flash('You do not have permission to approve this request.', 'danger')
+        # Allow for role ID mismatch but matching role names (e.g., 'admin', 'dean')
+        if current_user.role_id != approval.step.approver_role_id and current_user.role.name != 'admin':
+            role_required = approver_role.name if approver_role else "Unknown"
+            flash(f'You do not have permission to approve this request. Required role: {role_required}', 'danger')
             return redirect(url_for('pending_approvals'))
         
         if approval.status != 'pending':
@@ -159,6 +164,12 @@ def setup_approval_routes(app):
         # GET request
         request_data = approval.request
         form_data = request_data.form_data
+        
+        # Get all approvals for this request to make them available to the template
+        request_data.approvals = RequestApproval.query.join(ApprovalStep).filter(
+            RequestApproval.request_id == request_data.id
+        ).order_by(ApprovalStep.step_order).all()
+        
         return render_template('request_approval.html', approval=approval, request=request_data, form_data=form_data)
 
     @app.route('/approval_management')
@@ -195,10 +206,43 @@ def setup_approval_routes(app):
                     'step': appr.step.name,
                     'status': appr.status,
                     'approver': appr.approver.full_name if appr.approver else 'Pending',
-                    'comments': appr.comments
+                    'comments': appr.comments,
+                    'pdf_path': appr.pdf_path  # Include PDF path in context
                 })
         
         return render_template('approval_management.html', requests=requests)
+
+    @app.route('/view_request_history/<int:request_id>')
+    @active_required
+    def view_request_history(request_id):
+        """View a request's full approval history with links to PDFs"""
+        if not session.get("user"):
+            return redirect(url_for("login"))
+        
+        user_email = session['user'].get('preferred_username').lower()
+        current_user = User.query.filter_by(email=user_email).first()
+        
+        if not current_user:
+            flash('User not found. Please log in again.', 'danger')
+            return redirect(url_for('login'))
+        
+        # Fetch the request
+        request_data = Request.query.get_or_404(request_id)
+        
+        # Get all approval steps for this request
+        approvals = RequestApproval.query.join(ApprovalStep).filter(
+            RequestApproval.request_id == request_data.id
+        ).order_by(ApprovalStep.step_order).all()
+        
+        # Check if at least one approval has a PDF
+        has_pdfs = any(approval.pdf_path for approval in approvals)
+        
+        return render_template(
+            'request_history.html', 
+            request=request_data, 
+            approvals=approvals,
+            has_pdfs=has_pdfs
+        )
 
     # ----------------------------------------------------------------
     # NEW ROUTE FOR RESUBMISSION (FIX & RESUBMIT A RETURNED REQUEST)
