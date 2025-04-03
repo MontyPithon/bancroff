@@ -36,21 +36,47 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {% for request in requests %}
+                                    {% for req in requests %}
                                         <tr>
-                                            <td>{{ request.id }}</td>
-                                            <td>{{ request.title }}</td>
-                                            <td>{{ request.request_type.name }}</td>
+                                            <td>{{ req.id }}</td>
+                                            <td>{{ req.title }}</td>
+                                            <td>{{ req.request_type.name }}</td>
                                             <td>
-                                                <span class="badge {% if request.status == 'draft' %}bg-secondary{% elif request.status == 'submitted' %}bg-primary{% elif request.status == 'approved' %}bg-success{% elif request.status == 'rejected' %}bg-danger{% else %}bg-info{% endif %}">
-                                                    {{ request.status | title }}
-                                                </span>
+                                                {# Decide which badge color to show based on req.status #}
+                                                {% set status_lower = req.status|lower %}
+                                                {% if status_lower == 'draft' %}
+                                                    <span class="badge bg-secondary">Draft</span>
+                                                {% elif status_lower == 'submitted' %}
+                                                    <span class="badge bg-primary">Submitted</span>
+                                                {% elif status_lower == 'approved' %}
+                                                    <span class="badge bg-success">Approved</span>
+                                                {% elif status_lower == 'rejected' %}
+                                                    <span class="badge bg-danger">Rejected</span>
+                                                {% elif status_lower == 'returned' %}
+                                                    <span class="badge bg-warning">Returned</span>
+                                                {% else %}
+                                                    <span class="badge bg-info">{{ req.status|title }}</span>
+                                                {% endif %}
                                             </td>
-                                            <td>{{ request.created_at.strftime('%Y-%m-%d') }}</td>
+                                            <td>{{ req.created_at.strftime('%Y-%m-%d') }}</td>
                                             <td>
+                                                <!-- Common action: View Details -->
                                                 <a href="#" class="btn btn-sm btn-info">View Details</a>
-                                                {% if request.status == 'draft' %}
+                                                
+                                                {# If the request is still a draft, let the user edit #}
+                                                {% if req.status == 'draft' %}
                                                     <a href="#" class="btn btn-sm btn-warning">Edit</a>
+                                                {% endif %}
+
+                                                {# If the request is 'returned', let the user fix & resubmit #}
+                                                {% if req.status == 'returned' %}
+                                                    <!-- Example route: resubmit_request -->
+                                                    <form action="{{ url_for('resubmit_request', request_id=req.id) }}" 
+                                                          method="POST" style="display:inline;">
+                                                        <button class="btn btn-sm btn-primary" type="submit">
+                                                            Fix &amp; Resubmit
+                                                        </button>
+                                                    </form>
                                                 {% endif %}
                                             </td>
                                         </tr>
@@ -86,4 +112,4 @@
         </div>
     </div>
 </div>
-{% endblock %}</div>
+{% endblock %}
