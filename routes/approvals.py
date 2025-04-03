@@ -196,10 +196,50 @@ def setup_approval_routes(app):
         
         return render_template('approval_management.html', requests=requests)
 
+    # ----------------------------------------------------------------
+    # NEW ROUTE FOR RESUBMISSION (FIX & RESUBMIT A RETURNED REQUEST)
+    # ----------------------------------------------------------------
+    @app.route('/resubmit_request/<int:request_id>', methods=['POST'])
+    @active_required
+    def resubmit_request(request_id):
+        """Allows the requester to fix a 'returned' request and resubmit it (set status to 'pending')."""
+        if not session.get("user"):
+            return redirect(url_for("login"))
+        
+        user_email = session['user'].get('preferred_username').lower()
+        current_user = User.query.filter_by(email=user_email).first()
+
+        if not current_user:
+            flash('User not found. Please log in again.', 'danger')
+            return redirect(url_for('login'))
+
+        req = Request.query.get(request_id)
+        if not req:
+            flash('Request not found.', 'danger')
+            return redirect(url_for('my_requests'))
+
+        # Ensure the user owns this request (important security check)
+        if req.requester_id != current_user.id:
+            flash('You do not have permission to modify this request.', 'danger')
+            return redirect(url_for('my_requests'))
+
+        # Make sure it's in a 'returned' state
+        if req.status != 'returned':
+            flash('You can only resubmit a returned request.', 'warning')
+            return redirect(url_for('my_requests'))
+
+        # (Optional) If you want to let them update form_data, you'd do that here,
+        # by reading from the POST body. If you just want to set it to pending:
+        req.status = 'pending'
+        db.session.commit()
+
+        flash('Request has been resubmitted for approval.', 'success')
+        return redirect(url_for('my_requests'))
+
+
 # --------------------------------------------------------------------
 # HELPER FUNCTION FOR PDF GENERATION
 # --------------------------------------------------------------------
-
 def generate_pdf_for_approval(approval_id):
     """
     Helper function that:
