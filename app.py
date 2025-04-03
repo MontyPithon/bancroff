@@ -40,4 +40,6 @@ def create_app():
 app = create_app()
 
 if __name__ == '__main__':
-    app.run(debug=config.DEBUG, port=config.SERVER_PORT) 
+    # When running in Docker, bind to 0.0.0.0 to be accessible
+    host = '0.0.0.0'
+    app.run(debug=config.DEBUG, host=host, port=config.SERVER_PORT) 

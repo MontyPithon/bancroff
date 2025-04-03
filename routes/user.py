@@ -16,6 +16,47 @@ def setup_user_routes(app):
         users = User.query.all()
         return render_template('user_list.html', users=users)
 
+    @app.route('/manage_users')
+    @management_access_required
+    @active_required
+    def manage_users():
+        """Redirect to user list page for compatibility with existing templates"""
+        return redirect(url_for('user_list'))
+
+    @app.route('/manage_roles')
+    @admin_required
+    @active_required
+    def manage_roles():
+        """Display and manage roles"""
+        if not session.get("user"):
+            return redirect(url_for("login"))
+        roles = Role.query.all()
+        role_names = [role.name for role in roles]
+        return render_template('role_list.html', roles=role_names)
+
+    @app.route('/add_role', methods=['GET', 'POST'])
+    @admin_required
+    @active_required
+    def add_role():
+        """Add a new role"""
+        if not session.get("user"):
+            return redirect(url_for("login"))
+            
+        if request.method == 'POST':
+            role_name = request.form.get('role')
+            if role_name:
+                existing_role = Role.query.filter_by(name=role_name).first()
+                if existing_role:
+                    flash(f'Role {role_name} already exists', 'warning')
+                else:
+                    new_role = Role(name=role_name)
+                    db.session.add(new_role)
+                    db.session.commit()
+                    flash(f'Role {role_name} created successfully', 'success')
+                return redirect(url_for('manage_roles'))
+                
+        return render_template('add_role.html')
+
     @app.route('/create_user', methods=['GET', 'POST'])
     @management_access_required
     @active_required
