@@ -183,4 +183,145 @@ def setup_form_routes(app):
         # Get all request types from the database
         form_types = RequestType.query.all()
         
-        return render_template('available_forms.html', form_types=form_types) 
+        return render_template('available_forms.html', form_types=form_types)
+
+    # ---------------------------------------------
+    # NEW ROUTES FOR EMAIL ALIAS & VERIFICATION OF ENROLLMENT
+    # ---------------------------------------------
+
+    @app.route('/email_alias_form', methods=['GET', 'POST'])
+    @active_required
+    def email_alias_form():
+        """Displays and processes the Email Alias form."""
+        if not session.get("user"):
+            return redirect(url_for("login"))
+        
+        if request.method == 'POST':
+            try:
+                user_email = session['user'].get('preferred_username').lower()
+                current_user = User.query.filter_by(email=user_email).first()
+                if not current_user:
+                    flash('User not found. Please log in again.', 'danger')
+                    return redirect(url_for('login'))
+
+                # If you require a signature for Email Alias too:
+                signature = get_user_signature(current_user.id)
+                if not signature:
+                    flash('Please upload a signature before submitting the form.', 'warning')
+                    return redirect(url_for('upload_signature'))
+
+                # Retrieve the request type for Email Alias
+                alias_type = RequestType.query.filter_by(name='Email Alias').first()
+                if not alias_type:
+                    flash('"Email Alias" request type not found. Please ensure you seeded it.', 'danger')
+                    return redirect(url_for('my_requests'))
+
+                # Process form data
+                form_data = {}
+                form_data['alias'] = request.form.get('alias')
+                form_data['reason'] = request.form.get('reason', '')
+                form_data['submissionDate'] = str(date.today())
+                form_data['signature_path'] = signature.signature_image_path
+
+                # Create a new Request object
+                new_request = Request(
+                    type_id=alias_type.id,
+                    requester_id=current_user.id,
+                    title='Email Alias Request',
+                    form_data=form_data,
+                    status='submitted'
+                )
+                db.session.add(new_request)
+                db.session.commit()
+                
+                # If an approval workflow is defined for Email Alias, create approvals
+                workflow = ApprovalWorkflow.query.filter_by(request_type_id=alias_type.id).first()
+                if workflow:
+                    for step in workflow.steps:
+                        approval = RequestApproval(
+                            request_id=new_request.id,
+                            step_id=step.id,
+                            status='pending'
+                        )
+                        db.session.add(approval)
+                    db.session.commit()
+
+                flash('Email Alias request submitted successfully!', 'success')
+                return redirect(url_for('my_requests'))
+
+            except Exception as e:
+                db.session.rollback()
+                flash(f'An error occurred while submitting the Email Alias form: {str(e)}', 'danger')
+                return redirect(url_for('email_alias_form'))
+
+        # GET request
+        return render_template('email_alias_form.html')
+
+    @app.route('/voe_form', methods=['GET', 'POST'])
+    @active_required
+    def voe_form():
+        """Displays and processes the Verification of Enrollment form."""
+        if not session.get("user"):
+            return redirect(url_for("login"))
+        
+        if request.method == 'POST':
+            try:
+                user_email = session['user'].get('preferred_username').lower()
+                current_user = User.query.filter_by(email=user_email).first()
+                if not current_user:
+                    flash('User not found. Please log in again.', 'danger')
+                    return redirect(url_for('login'))
+
+                # If signature is also required for this form:
+                signature = get_user_signature(current_user.id)
+                if not signature:
+                    flash('Please upload a signature before submitting the form.', 'warning')
+                    return redirect(url_for('upload_signature'))
+
+                # Retrieve the request type for Verification of Enrollment
+                voe_type = RequestType.query.filter_by(name='Verification of Enrollment').first()
+                if not voe_type:
+                    flash('"Verification of Enrollment" request type not found. Please ensure you seeded it.', 'danger')
+                    return redirect(url_for('my_requests'))
+
+                # Process form data
+                form_data = {}
+                form_data['semester'] = request.form.get('semester')
+                form_data['studentID'] = request.form.get('studentID')
+                form_data['extraInfo'] = request.form.get('extraInfo', '')
+                form_data['submissionDate'] = str(date.today())
+                form_data['signature_path'] = signature.signature_image_path
+
+                # Create a new Request object
+                new_request = Request(
+                    type_id=voe_type.id,
+                    requester_id=current_user.id,
+                    title='Verification of Enrollment Request',
+                    form_data=form_data,
+                    status='submitted'
+                )
+                db.session.add(new_request)
+                db.session.commit()
+
+                # If an approval workflow is defined for VOE, create approvals
+                workflow = ApprovalWorkflow.query.filter_by(request_type_id=voe_type.id).first()
+                if workflow:
+                    for step in workflow.steps:
+                        approval = RequestApproval(
+                            request_id=new_request.id,
+                            step_id=step.id,
+                            status='pending'
+                        )
+                        db.session.add(approval)
+                    db.session.commit()
+
+                flash('Verification of Enrollment form submitted successfully!', 'success')
+                return redirect(url_for('my_requests'))
+
+            except Exception as e:
+                db.session.rollback()
+                flash(f'An error occurred while submitting the VOE form: {str(e)}', 'danger')
+                return redirect(url_for('voe_form'))
+        
+        # GET request
+        return render_template('verification_of_enrollment_form.html')
