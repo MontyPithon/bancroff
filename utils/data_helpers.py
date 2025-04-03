@@ -223,8 +223,54 @@ def add_withdrawal_form_data(withdrawal_form_schema):
         print(f"An error occurred while adding Withdrawal form data: {e}")
         db.session.rollback()
 
+def add_email_alias_voe_data():
+    """
+    Add two new request types to the database:
+      1. Email Alias
+      2. Verification of Enrollment
+
+    For now, we won't define a new workflow with steps, but you can do so if needed.
+    """
+    try:
+        # Check if 'Email Alias' already exists
+        email_alias_type = RequestType.query.filter_by(name='Email Alias').first()
+        if not email_alias_type:
+            email_alias_type = RequestType(
+                name='Email Alias',
+                description='Request to set up or change a university email alias',
+                form_schema=None,  # or a JSON schema if you have one
+                template_doc_path=None
+            )
+            db.session.add(email_alias_type)
+            db.session.commit()
+            print("Email Alias request type added")
+
+        # Check if 'Verification of Enrollment' already exists
+        voe_type = RequestType.query.filter_by(name='Verification of Enrollment').first()
+        if not voe_type:
+            voe_type = RequestType(
+                name='Verification of Enrollment',
+                description='Request for official enrollment verification',
+                form_schema=None,  # or a JSON schema if needed
+                template_doc_path=None
+            )
+            db.session.add(voe_type)
+            db.session.commit()
+            print("Verification of Enrollment request type added")
+
+        # If you need roles and workflows, add them here, similar to RCL or Withdrawal.
+        # For example:
+        # advisor_role = Role.query.filter_by(name='advisor').first()
+        # ...
+        # Then create ApprovalWorkflow + ApprovalStep for each request type if needed.
+
+    except Exception as e:
+        print(f"An error occurred while adding Email Alias & VOE data: {e}")
+        db.session.rollback()
+
 def initialize_database(rcl_form_schema, withdrawal_form_schema):
     """Initialize the database with necessary data"""
     add_fake_data()
     add_rcl_data(rcl_form_schema)
-    add_withdrawal_form_data(withdrawal_form_schema) 
+    add_withdrawal_form_data(withdrawal_form_schema)
+    add_email_alias_voe_data()  # <-- call your new function here
