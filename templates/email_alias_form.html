@@ -1,1 +1,37 @@
+{% extends 'layout.html' %}
 
+{% block title %}Email Alias Request{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+  <h2>Email Alias Request</h2>
+  
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+          {{ message }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+  
+  <form method="POST" action="{{ url_for('submit_email_alias') }}">
+    <!-- New Email Alias -->
+    <div class="mb-3">
+      <label for="alias" class="form-label">New Email Alias</label>
+      <input type="text" name="alias" id="alias" class="form-control" required>
+    </div>
+
+    <!-- Reason / Additional Info (optional) -->
+    <div class="mb-3">
+      <label for="reason" class="form-label">Reason (optional)</label>
+      <textarea name="reason" id="reason" class="form-control"></textarea>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Submit Request</button>
+    <a href="{{ url_for('my_requests') }}" class="btn btn-secondary">Cancel</a>
+  </form>
+</div>
+{% endblock %}
