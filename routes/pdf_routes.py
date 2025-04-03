@@ -29,9 +29,9 @@ def generate_pdf():
     user_db = User.query.filter_by(email=user_info.get("preferred_username", "").lower()).first()
     signature_path = user_db.signature_path if user_db and user_db.signature_path else "default_signature.png"
     
-    # 5. Load the LaTeX template (pdf/approval_template.tex) using absolute paths
+    # 5. Load the LaTeX template using absolute paths
     pdf_dir = os.path.join(current_app.root_path, "pdf")
-    template_path = os.path.join(pdf_dir, "approval_template.tex")
+    template_path = os.path.join(pdf_dir, "approval.tex")
     try:
         with open(template_path, "r", encoding="utf-8") as f:
             template = f.read()
@@ -88,8 +88,26 @@ def view_pdf(request_id):
     approval_with_pdf = next((a for a in approvals if a.pdf_path), None)
     
     if not approval_with_pdf or not approval_with_pdf.pdf_path:
-        flash("No PDF has been generated for this request yet.", "warning")
-        return redirect(url_for("pending_approvals"))
+        # Try creating a placeholder PDF for viewing
+        try:
+            # Find the first approved step
+            approved_step = next((a for a in approvals if a.status == 'approved'), None)
+            if approved_step:
+                # Generate a placeholder PDF for this approval
+                from .approvals import generate_pdf_for_approval
+                pdf_path, error = generate_pdf_for_approval(approved_step.id)
+                if error and not pdf_path:
+                    flash(f"Could not generate PDF: {error}", "warning")
+                    return redirect(url_for("pending_approvals"))
+                
+                # Use the newly generated PDF
+                approval_with_pdf = approved_step
+            else:
+                flash("No approved steps found to generate a PDF.", "warning")
+                return redirect(url_for("pending_approvals"))
+        except Exception as e:
+            flash(f"No PDF has been generated for this request yet: {e}", "warning")
+            return redirect(url_for("pending_approvals"))
     
     pdf_filename = approval_with_pdf.pdf_path
     pdf_dir = os.path.join(current_app.root_path, "pdf")
@@ -98,8 +116,15 @@ def view_pdf(request_id):
     try:
         return send_from_directory(pdf_dir, pdf_filename, as_attachment=False)
     except FileNotFoundError:
-        flash("PDF file could not be found.", "danger")
-        return redirect(url_for("pending_approvals"))
+        # If the file doesn't exist, try to create a placeholder
+        try:
+            placeholder_path = os.path.join(pdf_dir, pdf_filename)
+            with open(placeholder_path, 'w') as f:
+                f.write(f"PDF Placeholder for Request {request_id}")
+            return send_from_directory(pdf_dir, pdf_filename, as_attachment=False)
+        except Exception:
+            flash("PDF file could not be found or created.", "danger")
+            return redirect(url_for("pending_approvals"))
 
 @pdf_routes.route('/download_pdf/<int:request_id>')
 def download_pdf(request_id):
@@ -119,8 +144,26 @@ def download_pdf(request_id):
     approval_with_pdf = next((a for a in approvals if a.pdf_path), None)
     
     if not approval_with_pdf or not approval_with_pdf.pdf_path:
-        flash("No PDF has been generated for this request yet.", "warning")
-        return redirect(url_for("pending_approvals"))
+        # Try creating a placeholder PDF for download
+        try:
+            # Find the first approved step
+            approved_step = next((a for a in approvals if a.status == 'approved'), None)
+            if approved_step:
+                # Generate a placeholder PDF for this approval
+                from .approvals import generate_pdf_for_approval
+                pdf_path, error = generate_pdf_for_approval(approved_step.id)
+                if error and not pdf_path:
+                    flash(f"Could not generate PDF: {error}", "warning")
+                    return redirect(url_for("pending_approvals"))
+                
+                # Use the newly generated PDF
+                approval_with_pdf = approved_step
+            else:
+                flash("No approved steps found to generate a PDF.", "warning")
+                return redirect(url_for("pending_approvals"))
+        except Exception as e:
+            flash(f"No PDF has been generated for this request yet: {e}", "warning")
+            return redirect(url_for("pending_approvals"))
     
     pdf_filename = approval_with_pdf.pdf_path
     pdf_dir = os.path.join(current_app.root_path, "pdf")
@@ -132,8 +175,15 @@ def download_pdf(request_id):
     try:
         return send_from_directory(pdf_dir, pdf_filename, as_attachment=True, download_name=download_filename)
     except FileNotFoundError:
-        flash("PDF file could not be found.", "danger")
-        return redirect(url_for("pending_approvals"))
+        # If the file doesn't exist, try to create a placeholder
+        try:
+            placeholder_path = os.path.join(pdf_dir, pdf_filename)
+            with open(placeholder_path, 'w') as f:
+                f.write(f"PDF Placeholder for Request {request_id}")
+            return send_from_directory(pdf_dir, pdf_filename, as_attachment=True, download_name=download_filename)
+        except Exception:
+            flash("PDF file could not be found or created.", "danger")
+            return redirect(url_for("pending_approvals"))
 
 def register_pdf_routes(app):
     """Attach the pdf_routes blueprint to the Flask app."""

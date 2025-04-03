@@ -16,6 +16,10 @@ Last Name: {{lastName}} \\[10pt]
 {{date}} \\[20pt]
 
 \noindent \textbf{Signature:} \\
-\includegraphics[width=0.3\textwidth]{./{{signatureFilename}}}
+\IfFileExists{/app/uploads/{{signatureFilename}}}{%
+    \includegraphics[width=0.3\textwidth]{/app/uploads/{{signatureFilename}}}%
+}{%
+    (Signature not available)%
+}
 
 \end{document}
