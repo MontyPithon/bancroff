@@ -26,7 +26,7 @@
                     </li>
                     {% endif %}
                     
-                    {% if session.get('user') and session.get('role') == 'admin' %}
+                    {% if session.get('user') and session.get('role') in ['admin', 'chair', 'dean', 'advisor'] %}
                         <li class="nav-item">
                             <a class="nav-link" href="{{ url_for('create_user') }}">Create User</a>
                         </li>
