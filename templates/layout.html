@@ -36,7 +36,7 @@
                     {% endif %}
                     {% if session.get('user') and session.get('role') != 'basic_user' %}
                         <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('pending_approvals') }}">Pending Approvals</a>
+                            <a class="nav-link" href="{{ url_for('pending_approvals') }}">All Forms</a>
                         </li>
                     {% endif %}
                     <li class="nav-item">

@@ -25,6 +25,7 @@ def setup_approval_routes(app):
     @app.route('/pending_approvals')
     @active_required
     def pending_approvals():
+        """View all forms regardless of their status"""
         if not session.get("user"):
             return redirect(url_for("login"))
         
@@ -41,7 +42,7 @@ def setup_approval_routes(app):
         
         # Get all requests with their approval statuses
         requests = Request.query.all()
-        pending_approvals = []
+        all_approvals = []
         
         for req in requests:
             # Get all approval steps for this request
@@ -49,17 +50,20 @@ def setup_approval_routes(app):
                 RequestApproval.request_id == req.id
             ).order_by(ApprovalStep.step_order).all()
             
-            # Find the current pending step
-            current_pending = next((a for a in request_approvals if a.status == 'pending'), None)
+            # Find the current pending step or the latest step if none are pending
+            current_step = next((a for a in request_approvals if a.status == 'pending'), 
+                               request_approvals[-1] if request_approvals else None)
             
-            if current_pending:
-                pending_approvals.append({
-                    'approval_id': current_pending.id,
+            # Include all requests, not just those with pending steps
+            if current_step:
+                all_approvals.append({
+                    'approval_id': current_step.id,
                     'request': req,
                     'request_type': req.request_type.name,
                     'requester': req.requester.full_name,
                     'submitted': req.created_at,
-                    'step': current_pending.step.name,
+                    'step': current_step.step.name,
+                    'status': req.status,  # Include overall request status
                     'approval_status': [{
                         'step': a.step.name,
                         'status': a.status,
@@ -67,7 +71,7 @@ def setup_approval_routes(app):
                     } for a in request_approvals]
                 })
         
-        return render_template('pending_approvals.html', pending_approvals=pending_approvals)
+        return render_template('pending_approvals.html', pending_approvals=all_approvals)
 
     @app.route('/request_approval/<int:approval_id>', methods=['GET', 'POST'])
     @active_required

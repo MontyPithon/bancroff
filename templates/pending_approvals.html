@@ -2,7 +2,7 @@
 
 {% block content %}
 <div class="container mt-4">
-    <h1>Pending Approvals</h1>
+    <h1>All Form Requests</h1>
     
     {% if pending_approvals %}
         <div class="table-responsive">
@@ -14,7 +14,8 @@
                         <th>Requester</th>
                         <th>Submission Date</th>
                         <th>Current Step</th>
-                        <th>Approval Status</th>
+                        <th>Status</th>
+                        <th>Approval Progress</th>
                         <th>Action</th>
                     </tr>
                 </thead>
@@ -27,6 +28,15 @@
                         <td>{{ approval.submitted.strftime('%Y-%m-%d') }}</td>
                         <td>{{ approval.step }}</td>
                         <td>
+                            <span class="badge {% if approval.status == 'approved' %}bg-success
+                                         {% elif approval.status == 'rejected' %}bg-danger
+                                         {% elif approval.status == 'pending' %}bg-primary
+                                         {% elif approval.status == 'returned' %}bg-warning
+                                         {% else %}bg-secondary{% endif %}">
+                                {{ approval.status|capitalize }}
+                            </span>
+                        </td>
+                        <td>
                             <div class="approval-steps">
                                 {% for step in approval.approval_status %}
                                 <div class="step mb-1">
@@ -34,8 +44,9 @@
                                         <strong>{{ step.step }}:</strong>
                                         <span class="badge {% if step.status == 'approved' %}bg-success
                                                          {% elif step.status == 'rejected' %}bg-danger
+                                                         {% elif step.status == 'returned' %}bg-warning
                                                          {% else %}bg-secondary{% endif %}">
-                                            {{ step.status }}
+                                            {{ step.status|capitalize }}
                                         </span>
                                         {% if step.approver != 'Pending' %}
                                         <br>By: {{ step.approver }}
@@ -46,7 +57,17 @@
                             </div>
                         </td>
                         <td>
-                            <a href="{{ url_for('request_approval', approval_id=approval.approval_id) }}" class="btn btn-primary btn-sm">Review</a>
+                            {% if approval.status == 'pending' %}
+                                <a href="{{ url_for('request_approval', approval_id=approval.approval_id) }}" class="btn btn-primary btn-sm">Review</a>
+                            {% elif approval.status == 'approved' %}
+                                <button class="btn btn-success btn-sm" disabled>Approved</button>
+                            {% elif approval.status == 'rejected' %}
+                                <button class="btn btn-danger btn-sm" disabled>Rejected</button>
+                            {% elif approval.status == 'returned' %}
+                                <button class="btn btn-warning btn-sm" disabled>Returned</button>
+                            {% else %}
+                                <button class="btn btn-secondary btn-sm" disabled>{{ approval.status|capitalize }}</button>
+                            {% endif %}
                         </td>
                     </tr>
                     {% endfor %}
@@ -55,7 +76,7 @@
         </div>
     {% else %}
         <div class="alert alert-info">
-            <p>You don't have any pending approvals at this time.</p>
+            <p>There are no form requests available at this time.</p>
         </div>
     {% endif %}
     
