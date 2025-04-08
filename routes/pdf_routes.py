@@ -71,8 +71,21 @@ def download_pdf(filename):
     return send_from_directory(pdf_dir, filename, as_attachment=True)
 
 def register_pdf_routes(app):
-    """
-    Registers the PDF blueprint with the Flask app.
-    Call this function in your routes/__init__.py.
-    """
+    from flask import current_app
+    # Create and register your PDF Blueprint here.
+    pdf_bp = Blueprint('pdf_bp', __name__)
+
+    @pdf_bp.route('/generate_pdf', methods=['POST'])
+    def generate_pdf():
+        # ... [Your PDF generation logic here]
+        # For now, this is just a placeholder route.
+        return "PDF generated", 200
+
+    @pdf_bp.route('/download_pdf/<filename>', methods=['GET'])
+    def download_pdf(filename):
+        from flask import send_from_directory
+        pdf_dir = os.path.join(current_app.root_path, "pdf")
+        return send_from_directory(pdf_dir, filename, as_attachment=True)
+
     app.register_blueprint(pdf_bp)
+
