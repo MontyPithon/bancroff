@@ -1,35 +1,52 @@
-\documentclass{article}
-\usepackage{graphicx}
+\documentclass[12pt]{article}
+\usepackage[utf8]{inputenc}
 \usepackage[margin=1in]{geometry}
+\usepackage{graphicx}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage{datetime}
+\usepackage{setspace}
+
+\title{\textbf{Withdrawal Request Form}}
+\author{}
+\date{}
+
 \begin{document}
+\maketitle
 
-\section*{Withdrawal Form}
+\section*{Student Information}
+\textbf{Full Name:} {{fullName}} \\[0.5em]
+\textbf{PS ID:} {{psId}} \\[0.5em]
+\textbf{College:} {{college}} \\[0.5em]
+\textbf{Plan/Degree:} {{planDegree}} \\[0.5em]
+\textbf{Address:} {{address}} \\[0.5em]
+\textbf{Phone Number:} {{phone}} \\[0.5em]
 
-\textbf{Name:} {{fullName}} \\
-\textbf{myUHID:} {{myUHID}} \\
-\textbf{College:} {{college}} \\
-\textbf{Degree Plan:} {{planDegree}} \\[10pt]
+\section*{Withdrawal Details}
+\textbf{Term/Year:} {{termYear}} \\[0.5em]
+\textbf{Reason for Withdrawal:} {{reason}} \\[0.5em]
+\textbf{Last Date Attended:} {{lastDateAttended}} \\[0.5em]
+\textbf{Withdrawal Type:} {{withdrawalType}} \\[0.5em]
 
-\textbf{Address:} {{address}} \\
-\textbf{Phone Number:} {{phoneNumber}} \\
-\textbf{Term Year:} {{termYear}} \\[10pt]
+\section*{Impact on Student Status}
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Financial Assistance:} {{financialAssistance}}
+    \item \textbf{Student Health Insurance:} {{studentHealthInsurance}}
+    \item \textbf{Campus Housing:} {{campusHousing}}
+    \item \textbf{Visa Status:} {{visaStatus}}
+    \item \textbf{G.I. Bill Benefits:} {{giBillBenefits}}
+\end{itemize}
 
-\textbf{Reason:} {{reason}} \\
-\textbf{Last Date Attended:} {{lastDateAttended}} \\[10pt]
+\section*{Courses to Withdraw}
+{{courses}}
 
-\textbf{Financial Assistance:} {{financialAssistance}} \\
-\textbf{Student Health Insurance:} {{studentHealthInsurance}} \\
-\textbf{Campus Housing:} {{campusHousing}} \\
-\textbf{Visa Status:} {{visaStatus}} \\
-\textbf{GI Bill Benefits:} {{giBillBenefits}} \\[10pt]
+\section*{Additional Comments}
+{{additionalComments}}
 
-\textbf{Withdrawal Type:} {{withdrawalType}} \\
-\textbf{Courses To Withdraw:} {{coursesToWithdraw}} \\[10pt]
-
-\textbf{Additional Comments:} {{additionalComments}} \\[10pt]
-
-\textbf{Submission Date:} {{submissionDate}} \\
-\textbf{Signature:}\\
-\includegraphics[width=0.3\textwidth]{./{{signature_path}}}
+\vspace{2em}
+\section*{Date and Signature}
+Date: {{signatureDate}} \\[2em]
+\rule{6cm}{0.4pt} \\
+Student Signature
 
 \end{document}

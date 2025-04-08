@@ -45,6 +45,7 @@
         </div>
         <div class="card-body">
             <form method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <div class="form-group mb-3">
                     <label for="comments"><strong>Comments:</strong></label>
                     <textarea class="form-control" id="comments" name="comments" rows="4" placeholder="Enter your comments or feedback regarding this request"></textarea>

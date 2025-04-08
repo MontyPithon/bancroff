@@ -5,6 +5,8 @@ from models import db
 from routes import register_routes
 from utils.data_helpers import initialize_database
 from form_schema import rcl_form_schema, withdrawal_form_schema
+from flask_wtf.csrf import CSRFProtect
+from datetime import timedelta
 
 def create_app():
     """Create and configure the Flask application"""
@@ -15,6 +17,16 @@ def create_app():
     app.config['SQLALCHEMY_DATABASE_URI'] = config.SQLALCHEMY_DATABASE_URI
     app.config['UPLOAD_FOLDER'] = config.UPLOAD_FOLDER
     app.config['DEBUG'] = config.DEBUG
+    
+    # Session configuration
+    app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=24)
+    app.config['SESSION_COOKIE_SECURE'] = True
+    app.config['SESSION_COOKIE_HTTPONLY'] = True
+    app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+    
+    # Initialize CSRF protection
+    csrf = CSRFProtect()
+    csrf.init_app(app)
     
     # Initialize database
     db.init_app(app)
@@ -28,7 +40,8 @@ def create_app():
     
     # Initialize database with required data if it doesn't exist
     with app.app_context():
-        if not os.path.exists('./instance/bancroff.db'):
+        db_path = '/app/instance/bancroff.db'
+        if not os.path.exists(db_path):
             print("Initializing database...")
             db.create_all()
             initialize_database(rcl_form_schema, withdrawal_form_schema)

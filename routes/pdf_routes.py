@@ -1,8 +1,9 @@
-from flask import Blueprint, request, send_file, flash, redirect, url_for, render_template, current_app
+from flask import Blueprint, request, send_file, flash, redirect, url_for, render_template, current_app, send_from_directory
 import os
 from datetime import datetime
 from models import db, RequestApproval
 import subprocess
+import shutil
 
 pdf_bp = Blueprint('pdf', __name__)
 
@@ -14,6 +15,7 @@ def setup_pdf_routes(app):
 def generate_pdf_route(approval_id):
     """
     Generate and download a PDF for the specified approval ID.
+    Always generates a fresh PDF with the latest data.
     
     Args:
         approval_id (int): The ID of the approval record
@@ -25,21 +27,51 @@ def generate_pdf_route(approval_id):
     request_obj = approval.request
     requester = request_obj.requester
 
-    # Generate the PDF
-    pdf_path, error = _generate_pdf_for_approval(
-        approval_id=approval_id,
-        request_type=request_obj.request_type.name.lower(),
-        full_name=requester.full_name or "Unknown",
-        signature_path=requester.signature_path or "default_signature.png",
-        comments=approval.comments or "No comments"
-    )
+    # Determine which PDF generation function to use based on request type
+    request_type = request_obj.request_type.name.lower()
+    
+    # Import the specialized PDF generation functions
+    from routes.approvals import generate_rcl_pdf, generate_withdrawal_pdf, generate_pdf_for_approval
+    
+    # Generate the appropriate PDF based on request type
+    if request_type == 'rcl':
+        pdf_filename, error = generate_rcl_pdf(request_obj.id)
+    elif request_type == 'withdrawal':
+        pdf_filename, error = generate_withdrawal_pdf(request_obj.id)
+    else:
+        # Fallback to generic approval PDF
+        pdf_path, error = _generate_pdf_for_approval(
+            approval_id=approval_id,
+            request_type=request_type,
+            full_name=requester.full_name or "Unknown",
+            signature_path=requester.signature_path or "default_signature.png",
+            comments=approval.comments or "No comments"
+        )
+        if not error:
+            pdf_filename = os.path.basename(pdf_path)
+        else:
+            pdf_filename = None
 
-    if error:
+    if error or not pdf_filename:
         flash(f"PDF generation failed: {error}", "danger")
         return redirect(url_for("my_requests"))
 
-    flash("PDF generated successfully!", "success")
-    return send_file(pdf_path, as_attachment=True)
+    # Copy the generated PDF to static directory
+    static_pdf_dir = os.path.join(current_app.root_path, 'static', 'pdfs')
+    try:
+        os.makedirs(static_pdf_dir, exist_ok=True)
+        pdf_dir = os.path.join(current_app.root_path, "pdf")
+        source_pdf = os.path.join(pdf_dir, pdf_filename)
+        static_pdf_path = os.path.join(static_pdf_dir, f'approval_{approval_id}.pdf')
+        shutil.copy2(source_pdf, static_pdf_path)
+        # Update the approval record with the static path
+        approval.pdf_path = f'approval_{approval_id}.pdf'
+        db.session.commit()
+    except Exception as e:
+        flash(f"Error saving PDF: {str(e)}", "danger")
+        return redirect(url_for("my_requests"))
+
+    return send_from_directory(static_pdf_dir, f'approval_{approval_id}.pdf', as_attachment=False)
 
 def _generate_pdf_for_approval(approval_id, request_type, full_name, signature_path, comments):
     """
@@ -83,11 +115,6 @@ def _generate_pdf_for_approval(approval_id, request_type, full_name, signature_p
             return None, "PDF was not created."
 
         os.rename(pdf_file, final_pdf)
-
-        # Update database record
-        approval = RequestApproval.query.get(approval_id)
-        approval.pdf_path = os.path.basename(final_pdf)
-        db.session.commit()
 
         return final_pdf, None
 

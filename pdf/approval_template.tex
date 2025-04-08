@@ -1,0 +1,23 @@
+\documentclass{article}
+\usepackage{graphicx}
+\usepackage[margin=1in]{geometry}
+
+\begin{document}
+\section*{Approval Document}
+
+\noindent \textbf{Approved By:} \\
+First Name: {{firstName}} \\
+Last Name: {{lastName}} \\[10pt]
+
+\noindent \textbf{Approval Note:} \\
+{{approvalNote}} \\[10pt]
+
+\noindent \textbf{Date:} \\
+{{date}} \\[20pt]
+
+\noindent \textbf{Signature:} \\
+\IfFileExists{./{{signatureFilename}}}
+  {\includegraphics[width=0.3\textwidth]{./{{signatureFilename}}}}
+  {\textit{[Signature not available]}}
+
+\end{document} 

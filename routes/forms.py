@@ -27,38 +27,53 @@ def setup_form_routes(app):
                     flash('User not found. Please log in again.', 'danger')
                     return redirect(url_for('login'))
                 
-                # process form data 
+                # Process form data
                 form_data = {}
+                
+                # Process Initial Adjustment Issues
                 form_data['iai'] = request.form.getlist('iai[]')
+                
+                # Process reason (ICLP or medical)
                 form_data['reason'] = request.form.get('reason')
+                
+                # Process letter attachment
                 form_data['letter_attached'] = 'letter_attached' in request.form
-                form_data['track'] = request.form.get('track')
-
-                if form_data['track'] == 'non_thesis':
-                    form_data['non_thesis_hours'] = request.form.get('non_thesis_hours')
-                elif form_data['track'] == 'thesis':
-                    form_data['thesis_hours'] = request.form.get('thesis_hours')
-
+                
+                # Process semester and year
                 form_data['semester'] = request.form.get('semester')
                 if form_data['semester'] == 'fall':
                     form_data['year'] = '20' + request.form.get('fall_year', '')
                 elif form_data['semester'] == 'spring':
                     form_data['year'] = '20' + request.form.get('spring_year', '')
                 
-                # max 4 drops
+                # Process courses
                 form_data['courses'] = []
                 for i in range(1, 4):
                     course = request.form.get(f'course{i}')
                     if course:
                         form_data['courses'].append(course)
-
+                
+                # Process remaining hours
                 form_data['remaining_hours'] = request.form.get('remaining_hours')
+                
+                # Process PS ID
                 form_data['ps_id'] = request.form.get('ps_id')
-        
+                
+                # Add signature info
                 form_data['signature_date'] = str(date.today())
                 form_data['signature_path'] = signature.signature_image_path
-
-                # create request
+                
+                # Format reason for PDF
+                reason_text = []
+                if form_data['iai']:
+                    reason_text.append("Initial Adjustment Issues: " + ", ".join(form_data['iai']))
+                if form_data['reason'] == 'iclp':
+                    reason_text.append("Improper Course Level Placement")
+                elif form_data['reason'] == 'medical':
+                    reason_text.append("Medical Reason")
+                form_data['formatted_reason'] = "\n".join(reason_text)
+                
+                # Create request
                 semester_info = f"{form_data['semester']} {form_data['year']}"
                 new_request = Request(
                     type_id=rcl_type.id,
@@ -70,7 +85,7 @@ def setup_form_routes(app):
                 db.session.add(new_request)
                 db.session.commit()
                 
-                # create entries in approval table set as pending
+                # Create entries in approval table set as pending
                 workflow = ApprovalWorkflow.query.filter_by(request_type_id=rcl_type.id).first()
                 if workflow:
                     for step in workflow.steps:
@@ -117,22 +132,22 @@ def setup_form_routes(app):
                 
                 # Process form data
                 form_data = {}
-                form_data['myUHID'] = request.form.get('myUHID')
-                form_data['college'] = request.form.get('college')
-                form_data['planDegree'] = request.form.get('planDegree')
-                form_data['address'] = request.form.get('address')
-                form_data['phoneNumber'] = request.form.get('phoneNumber')
-                form_data['termYear'] = request.form.get('termYear')
-                form_data['reason'] = request.form.get('reason')
-                form_data['lastDateAttended'] = request.form.get('lastDateAttended')
+                form_data['myUHID'] = request.form.get('myUHID', '')
+                form_data['college'] = request.form.get('college', '')
+                form_data['planDegree'] = request.form.get('planDegree', '')
+                form_data['address'] = request.form.get('address', '')
+                form_data['phoneNumber'] = request.form.get('phoneNumber', '')
+                form_data['termYear'] = request.form.get('termYear', '')
+                form_data['reason'] = request.form.get('reason', '')
+                form_data['lastDateAttended'] = request.form.get('lastDateAttended', '')
                 form_data['financialAssistance'] = request.form.get('financialAssistance') == 'yes'
                 form_data['studentHealthInsurance'] = request.form.get('studentHealthInsurance') == 'yes'
                 form_data['campusHousing'] = request.form.get('campusHousing') == 'yes'
                 form_data['visaStatus'] = request.form.get('visaStatus') == 'yes'
                 form_data['giBillBenefits'] = request.form.get('giBillBenefits') == 'yes'
-                form_data['withdrawalType'] = request.form.get('withdrawalType')
-                form_data['coursesToWithdraw'] = request.form.get('coursesToWithdraw')
-                form_data['additionalComments'] = request.form.get('additionalComments')
+                form_data['withdrawalType'] = request.form.get('withdrawalType', '')
+                form_data['coursesToWithdraw'] = request.form.get('coursesToWithdraw', '')
+                form_data['additionalComments'] = request.form.get('additionalComments', '')
                 form_data['signature_path'] = signature.signature_image_path
                 form_data['submissionDate'] = str(date.today())
                     

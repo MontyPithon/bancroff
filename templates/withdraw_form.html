@@ -67,8 +67,8 @@
 
     <!-- The form uses POST method; action points to the withdrawal_form route -->
     <form id="withdrawalForm" action="{{ url_for('withdrawal_form') }}" method="post">
-        <!-- Include CSRF token if using Flask-WTF -->
-        {{ csrf_token() }}
+        <!-- Include CSRF token -->
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
         <p class="note">
             This form is used to request a medical or administrative withdrawal from all courses for a specific term. Please complete all required fields accurately.

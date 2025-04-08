@@ -63,8 +63,8 @@
 
   <!-- The form sends a POST request to the 'rcl_form' endpoint -->
   <form id="rclForm" action="{{ url_for('rcl_form') }}" method="post">
-    <!-- Include CSRF token if your app uses Flask-WTF -->
-    {{ csrf_token() }}
+    <!-- Include CSRF token -->
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
     <p class="note">
       F-1 students are required to maintain full-time student status every semester they are in the United States. Graduate students need to complete a minimum of 9 hours to maintain their immigration status. Students may have additional hours that are academically required by their department or for a tuition waiver. Classes during the summer are optional unless it is the first semester at UH; then an F-1 student has to complete 6 hours (i.e. full-time for summer). The following form must be completed before dropping below full-time hours after start of classes. Note: Dropping below full-time hours may involve the loss of resident tuition and GTF.

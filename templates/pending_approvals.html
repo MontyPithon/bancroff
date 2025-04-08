@@ -71,6 +71,7 @@
                                     <form method="POST" 
                                           action="{{ url_for('request_approval', approval_id=approval.approval_id) }}"
                                           class="mb-1">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                         <input type="hidden" name="action" value="approve">
                                         <!-- You can pass a default or hidden comment if needed -->
                                         <input type="hidden" name="comments" value="">
@@ -83,6 +84,7 @@
                                     <form method="POST" 
                                           action="{{ url_for('request_approval', approval_id=approval.approval_id) }}"
                                           class="mb-1">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                         <input type="hidden" name="action" value="reject">
                                         <input type="hidden" name="comments" value="">
                                         <button type="submit" class="btn btn-danger btn-sm">
@@ -92,7 +94,9 @@
 
                                     <!-- Return -->
                                     <form method="POST" 
-                                          action="{{ url_for('request_approval', approval_id=approval.approval_id) }}">
+                                          action="{{ url_for('request_approval', approval_id=approval.approval_id) }}"
+                                          class="mb-1">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                         <input type="hidden" name="action" value="return">
                                         <input type="hidden" name="comments" value="">
                                         <button type="submit" class="btn btn-warning btn-sm">
@@ -112,6 +116,13 @@
                                 {% else %}
                                     <button class="btn btn-secondary btn-sm mb-1" disabled>{{ approval.status|capitalize }}</button>
                                 {% endif %}
+
+                                <!-- Add PDF view/download button - always show -->
+                                <a href="{{ url_for('pdf.generate_pdf_route', approval_id=approval.approval_id) }}" 
+                                   class="btn btn-info btn-sm mt-1" 
+                                   target="_blank">
+                                    <i class="fas fa-file-pdf"></i> View PDF
+                                </a>
                             </div>
                         </td>
                     </tr>
