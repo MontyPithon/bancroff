@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, jsonify, request
 import os
 import config
 from models import db
@@ -37,6 +37,14 @@ def create_app():
     
     # Register all routes
     register_routes(app)
+    
+    # Add CORS headers to API responses
+    @app.after_request
+    def add_cors_headers(response):
+        if request.path.startswith('/api/'):
+            response.headers['Access-Control-Allow-Origin'] = '*'
+            response.headers['Access-Control-Allow-Methods'] = 'GET'
+        return response
     
     # Initialize database with required data if it doesn't exist
     with app.app_context():
