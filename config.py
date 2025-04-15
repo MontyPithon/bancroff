@@ -12,7 +12,7 @@ SECRET_KEY = 'password'
 DEBUG = True
 
 # Database settings
-SQLALCHEMY_DATABASE_URI = 'sqlite:///bancroff.db'
+SQLALCHEMY_DATABASE_URI = 'sqlite:////app/instance/bancroff.db'
 
 # File upload settings
 UPLOAD_FOLDER = os.path.join('static', 'uploads')

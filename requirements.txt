@@ -21,6 +21,7 @@ python-docx==1.1.0  # For Word document handling if needed
 pygments==2.18.0  # Syntax highlighting if processing code
 
 # Security and Authentication
+msal==1.27.0  # Microsoft Authentication Library
 pyjwt==2.10.1
 cryptography==43.0.3
 itsdangerous==2.2.0
@@ -31,7 +32,7 @@ urllib3==2.3.0
 
 # Utilities
 python-dateutil==2.9.0.post0
-tzdata==2025a
+tzdata==2024.1
 faker==30.8.1  # For test data generation
 
 # Development Tools (optional)

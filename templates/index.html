@@ -19,8 +19,8 @@
                     <h5 class="card-title">Submit Request</h5>
                     <p class="card-text">Choose a form type to submit a new request.</p>
                     <div class="d-grid gap-2">
-                        <a href="{{ url_for('rcl_form') }}" class="btn btn-primary">Reduced Course Load</a>
-                        <a href="{{ url_for('withdrawal_form') }}" class="btn btn-outline-primary">Course Withdrawal</a>
+                        <a href="{{ url_for('rcl_form') }}" class="btn btn-danger btn-lg">Reduced Course Load</a>
+                        <a href="{{ url_for('withdrawal_form') }}" class="btn btn-danger btn-lg">Course Withdrawal</a>
                     </div>
                 </div>
             </div>
@@ -33,7 +33,7 @@
                     <h5 class="card-title">My Requests</h5>
                     <p class="card-text">View and track your submitted requests.</p>
                     <div class="d-grid">
-                        <a href="{{ url_for('my_requests') }}" class="btn btn-primary">View Requests</a>
+                        <a href="{{ url_for('my_requests') }}" class="btn btn-danger btn-lg">View Requests</a>
                     </div>
                 </div>
             </div>
@@ -46,7 +46,7 @@
                     <h5 class="card-title">Signature</h5>
                     <p class="card-text">Manage your signature for form submissions.</p>
                     <div class="d-grid">
-                        <a href="{{ url_for('upload_signature') }}" class="btn btn-primary">Manage Signature</a>
+                        <a href="{{ url_for('upload_signature') }}" class="btn btn-danger btn-lg">Manage Signature</a>
                     </div>
                 </div>
             </div>
@@ -61,7 +61,7 @@
                 <div class="card-body">
                     <h5 class="card-title">Administrative Actions</h5>
                     <div class="d-flex flex-wrap gap-2">
-                        <a href="{{ url_for('pending_approvals') }}" class="btn btn-success">View Pending Approvals</a>
+                        <a href="{{ url_for('pending_approvals') }}" class="btn btn-danger btn-lg">View Pending Approvals</a>
                         {% if session.get('role') == 'admin' %}
                             <a href="{{ url_for('create_user') }}" class="btn btn-primary">Create User</a>
                             <a href="{{ url_for('manage_users') }}" class="btn btn-primary">Manage Users</a>
@@ -90,17 +90,17 @@
     margin-top: 0.5rem;
 }
 .nav-tabs .nav-link {
-    color: #6c757d;
-    border: 1px solid #dee2e6;
+    color: #f30d0d;
+    border: 1px solid #ff0000;
     margin-right: 0.25rem;
 }
 .nav-tabs .nav-link.active {
-    color: #0d6efd;
+    color: #fd0d0d;
     background-color: #fff;
-    border-color: #0d6efd;
+    border-color: #fd0d0d;
 }
 .nav-tabs .nav-link:hover {
-    border-color: #0d6efd;
+    border-color: #f72500;
     isolation: isolate;
 }
 </style>

@@ -1,30 +1,144 @@
-\documentclass{article}
-\usepackage{graphicx}
+\documentclass[12pt]{article}
+\usepackage[utf8]{inputenc}
 \usepackage[margin=1in]{geometry}
+\usepackage{graphicx}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage{datetime}
+\usepackage{setspace}
+
+\title{\textbf{Reduced Course Load (RCL) Request Form}}
+\author{}
+\date{}
 
 \begin{document}
-\section*{Reduced Course Load (RCL) Request}
+\maketitle
 
-\textbf{Name:} {{fullName}} \\
-\textbf{PS ID:} {{ps_id}} \\
-\textbf{Semester:} {{semester}} \\
-\textbf{Year:} {{year}} \\[10pt]
+\section*{Student Information}
+\textbf{Full Name:} {{fullName}} \\[0.5em]
+\textbf{PS ID:} {{psId}} \\[0.5em]
+\textbf{Semester:} {{semester}} \\[0.5em]
+\textbf{Year:} {{year}} \\[0.5em]
 
-\textbf{Track:} {{track}} \\
-\textbf{Reason:} {{reason}} \\[10pt]
+\section*{Request Details}
+\textbf{Reason for RCL:} \\[0.5em]
+{{reason}} \\[0.5em]
 
-\textbf{Courses to reduce:} \\
-{{courses}} \\[10pt]
+\textbf{Courses to Drop:} \\[0.5em]
+{{courses}} \\[0.5em]
 
-\textbf{Non-thesis hours (if any):} {{non_thesis_hours}} \\
-\textbf{Thesis hours (if any):} {{thesis_hours}} \\[10pt]
+\textbf{Remaining Hours:} {{remainingHours}} \\[0.5em]
 
-\textbf{Letter attached:} {{letter_attached}} \\[10pt]
+\textbf{Letter Attached:} {{letterAttached}} \\[0.5em]
 
-\textbf{Remaining hours:} {{remaining_hours}} \\[10pt]
+\section*{Academic Certifying Signatures}
 
-\textbf{Date:} {{signature_date}} \\
-\textbf{Signature:} \\
-\includegraphics[width=0.3\textwidth]{./{{signature_path}}}
+% Advisor Approval
+\subsection*{Academic Advisor}
+\begin{center}
+\fbox{
+    \begin{minipage}{0.8\textwidth}
+        \vspace{0.5em}
+        \begin{center}
+            \IfFileExists{ {{advisorSignature}} }{%
+                \includegraphics[width=0.4\textwidth]{ {{advisorSignature}} }%
+            }{%
+                \vspace{2em}%
+            }%
+            \vspace{0.5em}%
+            
+            \rule{6cm}{0.4pt} \\
+            {{advisorName}} \\
+            Academic Advisor \\
+            \vspace{0.5em}
+            Date: {{advisorDate}}
+            \vspace{0.5em}
+            
+            Comments: {{advisorComments}}
+        \end{center}
+        \vspace{0.5em}
+    \end{minipage}
+}
+\end{center}
+
+% Department Chair Approval
+\subsection*{Department Chair}
+\begin{center}
+\fbox{
+    \begin{minipage}{0.8\textwidth}
+        \vspace{0.5em}
+        \begin{center}
+            \IfFileExists{ {{chairSignature}} }{%
+                \includegraphics[width=0.4\textwidth]{ {{chairSignature}} }%
+            }{%
+                \vspace{2em}%
+            }%
+            \vspace{0.5em}%
+            
+            \rule{6cm}{0.4pt} \\
+            {{chairName}} \\
+            Department Chair \\
+            \vspace{0.5em}
+            Date: {{chairDate}}
+            \vspace{0.5em}
+            
+            Comments: {{chairComments}}
+        \end{center}
+        \vspace{0.5em}
+    \end{minipage}
+}
+\end{center}
+
+% Dean Approval
+\subsection*{College Dean}
+\begin{center}
+\fbox{
+    \begin{minipage}{0.8\textwidth}
+        \vspace{0.5em}
+        \begin{center}
+            \IfFileExists{ {{deanSignature}} }{%
+                \includegraphics[width=0.4\textwidth]{ {{deanSignature}} }%
+            }{%
+                \vspace{2em}%
+            }%
+            \vspace{0.5em}%
+            
+            \rule{6cm}{0.4pt} \\
+            {{deanName}} \\
+            College Dean \\
+            \vspace{0.5em}
+            Date: {{deanDate}}
+            \vspace{0.5em}
+            
+            Comments: {{deanComments}}
+        \end{center}
+        \vspace{0.5em}
+    \end{minipage}
+}
+\end{center}
+
+\vspace{2em}
+\section*{Student Authorization}
+\begin{center}
+\fbox{
+    \begin{minipage}{0.8\textwidth}
+        \vspace{0.5em}
+        \begin{center}
+            \IfFileExists{ {{studentSignature}} }{%
+                \includegraphics[width=0.4\textwidth]{ {{studentSignature}} }%
+            }{%
+                \vspace{2em}%
+            }%
+            \vspace{0.5em}%
+            
+            \rule{6cm}{0.4pt} \\
+            Student Signature \\
+            \vspace{0.5em}
+            Date: {{signatureDate}}
+        \end{center}
+        \vspace{0.5em}
+    \end{minipage}
+}
+\end{center}
 
 \end{document}

@@ -26,6 +26,16 @@ class Request(db.Model):
     requester = db.relationship('User', backref='requests')
     approvals = db.relationship('RequestApproval', backref='request', lazy=True)
 
+    @property
+    def latest_approval(self):
+        """Get the most recent approval for this request."""
+        from sqlalchemy import desc
+        return (RequestApproval.query
+                .join(ApprovalStep)
+                .filter(RequestApproval.request_id == self.id)
+                .order_by(desc(ApprovalStep.step_order))
+                .first())
+
 class ApprovalWorkflow(db.Model):
     __tablename__ = 'approval_workflows'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)

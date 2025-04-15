@@ -1,0 +1,55 @@
+\documentclass{article}
+\usepackage{graphicx}
+\usepackage[margin=1in]{geometry}
+
+\begin{document}
+\section*{Approval Document}
+
+\noindent \textbf{Request Details:} \\
+Request ID: {{requestId}} \\
+Request Type: {{requestType}} \\
+Submitted By: {{requesterName}} \\[10pt]
+
+\noindent \textbf{Approval History:} \\[10pt]
+
+% Student Signature
+\noindent \textbf{Student Signature:} \\
+\IfFileExists{./{{studentSignature}}}
+  {\includegraphics[width=0.3\textwidth]{./{{studentSignature}}}}
+  {\textit{[Student signature not available]}} \\
+Date: {{studentSignatureDate}} \\[15pt]
+
+% Advisor Signature
+\IfFileExists{./{{advisorSignature}}}
+{
+\noindent \textbf{Academic Advisor Signature:} \\
+\includegraphics[width=0.3\textwidth]{./{{advisorSignature}}} \\
+Name: {{advisorName}} \\
+Date: {{advisorSignatureDate}} \\[15pt]
+}
+
+% Chair Signature
+\IfFileExists{./{{chairSignature}}}
+{
+\noindent \textbf{Department Chair Signature:} \\
+\includegraphics[width=0.3\textwidth]{./{{chairSignature}}} \\
+Name: {{chairName}} \\
+Date: {{chairSignatureDate}} \\[15pt]
+}
+
+% Dean Signature
+\IfFileExists{./{{deanSignature}}}
+{
+\noindent \textbf{College Dean Signature:} \\
+\includegraphics[width=0.3\textwidth]{./{{deanSignature}}} \\
+Name: {{deanName}} \\
+Date: {{deanSignatureDate}} \\[15pt]
+}
+
+\noindent \textbf{Current Approval Note:} \\
+{{approvalNote}} \\[10pt]
+
+\noindent \textbf{Current Approval Date:} \\
+{{date}}
+
+\end{document} 
