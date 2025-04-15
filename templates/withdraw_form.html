@@ -56,6 +56,29 @@
             display: inline-block;
             margin-left: 5px;
         }
+        .signature-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+        .signature-preview {
+            margin: 10px 0;
+            padding: 10px;
+            border: 1px dashed #ccc;
+            text-align: center;
+        }
+        .signature-preview img {
+            max-width: 300px;
+            max-height: 100px;
+            margin: 10px 0;
+        }
+        .signature-warning {
+            color: #C8102E;
+            font-weight: bold;
+            margin: 10px 0;
+        }
     </style>
 </head>
 <body>
@@ -173,22 +196,27 @@
         </div>
 
         <div class="signature-section">
+            <h2>Student Signature</h2>
+            {% if signature %}
+                <div class="signature-preview">
+                    <p>Your signature is ready to be included with this form:</p>
+                    <img src="{{ url_for('static', filename='uploads/' + signature.signature_image_path) }}" 
+                         alt="Your Signature" class="signature-image">
+                    <p class="note">This signature will be included when you submit the form.</p>
+                </div>
+            {% else %}
+                <div class="signature-warning">
+                    <p>⚠️ You need to upload your signature before submitting this form.</p>
+                    <a href="{{ url_for('upload_signature') }}" class="btn btn-warning">Upload Signature</a>
+                </div>
+            {% endif %}
+            
             <h2>Academic Certifying Signatures</h2>
             <p class="note">This form requires signatures from your Academic Advisor, Chair, and College Dean</p>
             <p class="note">Note: This electronic form will be submitted for approval after submission</p>
         </div>
         
-        <button type="submit" class="submit-btn">Submit Form</button>
-        
-        {% if form_data and form_data.signature_path %}
-        <div class="row mb-3">
-            <div class="col-md-4"><strong>Requester Signature:</strong></div>
-            <div class="col-md-8">
-                <img src="{{ url_for('static', filename='uploads/' + form_data.signature_path) }}" 
-                     alt="Requester Signature" style="max-width: 300px; max-height: 100px;">
-            </div>
-        </div>
-        {% endif %}
+        <button type="submit" class="submit-btn" {% if not signature %}disabled{% endif %}>Submit Form</button>
     </form>
 </body>
 </html>

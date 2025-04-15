@@ -32,22 +32,113 @@
 \textbf{Letter Attached:} {{letterAttached}} \\[0.5em]
 
 \section*{Academic Certifying Signatures}
-\textbf{Academic Advisor:} \\[2em]
-\rule{6cm}{0.4pt} \\
-Signature and Date
 
-\textbf{Department Chair:} \\[2em]
-\rule{6cm}{0.4pt} \\
-Signature and Date
+% Advisor Approval
+\subsection*{Academic Advisor}
+\begin{center}
+\fbox{
+    \begin{minipage}{0.8\textwidth}
+        \vspace{0.5em}
+        \begin{center}
+            \IfFileExists{ {{advisorSignature}} }{%
+                \includegraphics[width=0.4\textwidth]{ {{advisorSignature}} }%
+            }{%
+                \vspace{2em}%
+            }%
+            \vspace{0.5em}%
+            
+            \rule{6cm}{0.4pt} \\
+            {{advisorName}} \\
+            Academic Advisor \\
+            \vspace{0.5em}
+            Date: {{advisorDate}}
+            \vspace{0.5em}
+            
+            Comments: {{advisorComments}}
+        \end{center}
+        \vspace{0.5em}
+    \end{minipage}
+}
+\end{center}
 
-\textbf{College Dean:} \\[2em]
-\rule{6cm}{0.4pt} \\
-Signature and Date
+% Department Chair Approval
+\subsection*{Department Chair}
+\begin{center}
+\fbox{
+    \begin{minipage}{0.8\textwidth}
+        \vspace{0.5em}
+        \begin{center}
+            \IfFileExists{ {{chairSignature}} }{%
+                \includegraphics[width=0.4\textwidth]{ {{chairSignature}} }%
+            }{%
+                \vspace{2em}%
+            }%
+            \vspace{0.5em}%
+            
+            \rule{6cm}{0.4pt} \\
+            {{chairName}} \\
+            Department Chair \\
+            \vspace{0.5em}
+            Date: {{chairDate}}
+            \vspace{0.5em}
+            
+            Comments: {{chairComments}}
+        \end{center}
+        \vspace{0.5em}
+    \end{minipage}
+}
+\end{center}
+
+% Dean Approval
+\subsection*{College Dean}
+\begin{center}
+\fbox{
+    \begin{minipage}{0.8\textwidth}
+        \vspace{0.5em}
+        \begin{center}
+            \IfFileExists{ {{deanSignature}} }{%
+                \includegraphics[width=0.4\textwidth]{ {{deanSignature}} }%
+            }{%
+                \vspace{2em}%
+            }%
+            \vspace{0.5em}%
+            
+            \rule{6cm}{0.4pt} \\
+            {{deanName}} \\
+            College Dean \\
+            \vspace{0.5em}
+            Date: {{deanDate}}
+            \vspace{0.5em}
+            
+            Comments: {{deanComments}}
+        \end{center}
+        \vspace{0.5em}
+    \end{minipage}
+}
+\end{center}
 
 \vspace{2em}
-\section*{Student Signature}
-Date: {{signatureDate}} \\[2em]
-\rule{6cm}{0.4pt} \\
-Student Signature
+\section*{Student Authorization}
+\begin{center}
+\fbox{
+    \begin{minipage}{0.8\textwidth}
+        \vspace{0.5em}
+        \begin{center}
+            \IfFileExists{ {{studentSignature}} }{%
+                \includegraphics[width=0.4\textwidth]{ {{studentSignature}} }%
+            }{%
+                \vspace{2em}%
+            }%
+            \vspace{0.5em}%
+            
+            \rule{6cm}{0.4pt} \\
+            Student Signature \\
+            \vspace{0.5em}
+            Date: {{signatureDate}}
+        \end{center}
+        \vspace{0.5em}
+    \end{minipage}
+}
+\end{center}
 
 \end{document}

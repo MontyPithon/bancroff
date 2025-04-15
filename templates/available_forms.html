@@ -24,21 +24,23 @@
 
                     <div class="row row-cols-1 row-cols-md-2 g-4 mt-3">
                         {% for form_type in form_types %}
-                        <div class="col">
-                            <div class="card h-100">
-                                <div class="card-body">
-                                    <h5 class="card-title">{{ form_type.name }}</h5>
-                                    <p class="card-text">{{ form_type.description }}</p>
-                                </div>
-                                <div class="card-footer">
-                                    {% if form_type.name == 'RCL' %}
-                                    <a href="{{ url_for('rcl_form') }}" class="btn btn-success">Create New Request</a>
-                                    {% elif form_type.name == 'Withdrawal' %}
-                                    <a href="{{ url_for('withdrawal_form') }}" class="btn btn-success">Create New Request</a>
-                                    {% endif %}
+                            {% if form_type.name in ['RCL', 'Withdrawal'] %}
+                            <div class="col">
+                                <div class="card h-100">
+                                    <div class="card-body">
+                                        <h5 class="card-title">{{ form_type.name }}</h5>
+                                        <p class="card-text">{{ form_type.description }}</p>
+                                    </div>
+                                    <div class="card-footer">
+                                        {% if form_type.name == 'RCL' %}
+                                        <a href="{{ url_for('rcl_form') }}" class="btn btn-success">Create New Request</a>
+                                        {% elif form_type.name == 'Withdrawal' %}
+                                        <a href="{{ url_for('withdrawal_form') }}" class="btn btn-success">Create New Request</a>
+                                        {% endif %}
+                                    </div>
                                 </div>
                             </div>
-                        </div>
+                            {% endif %}
                         {% endfor %}
                     </div>
                 </div>

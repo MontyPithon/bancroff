@@ -21,6 +21,25 @@ def setup_approval_routes(app):
             return redirect(url_for('login'))
         
         requests = current_user.requests
+        
+        # Add approval status information to each request
+        for req in requests:
+            # Get all approval steps for this request
+            request_approvals = RequestApproval.query.join(ApprovalStep).filter(
+                RequestApproval.request_id == req.id
+            ).order_by(ApprovalStep.step_order).all()
+            
+            # Add approval status to each request
+            req.approval_status = []
+            for approval in request_approvals:
+                role_name = approval.step.approver_role.name if approval.step.approver_role else "Unknown"
+                req.approval_status.append({
+                    'role': role_name,
+                    'step': approval.step.name,
+                    'status': approval.status,
+                    'approver': approval.approver.full_name if approval.approver else 'Pending'
+                })
+        
         return render_template('my_requests.html', requests=requests)
 
     @app.route('/pending_approvals')
@@ -73,6 +92,11 @@ def setup_approval_routes(app):
                     'name': current_step.step.approver_role.name if current_step.step.approver_role else "Unknown"
                 }
                 
+                # Get the latest approval for this request
+                latest_approval = RequestApproval.query.join(ApprovalStep).filter(
+                    RequestApproval.request_id == req.id
+                ).order_by(ApprovalStep.step_order.desc()).first()
+                
                 all_approvals.append({
                     'approval_id': current_step.id,
                     'request': req,
@@ -82,6 +106,8 @@ def setup_approval_routes(app):
                     'step': current_step.step.name,
                     'status': req.status,
                     'can_approve': can_approve,
+                    'latest_approval': latest_approval,
+                    'pdf_path': current_step.pdf_path,
                     'approval_status': [{
                         'step': a.step.name,
                         'status': a.status,
@@ -102,38 +128,17 @@ def setup_approval_routes(app):
     @active_required
     def request_approval(approval_id):
         """View and process approval for a specific request"""
-        if not session.get("user"):
-            return redirect(url_for("login"))
+        approval = RequestApproval.query.get_or_404(approval_id)
+        current_user = User.query.filter_by(email=session['user'].get('preferred_username').lower()).first()
         
-        user_email = session['user'].get('preferred_username').lower()
-        current_user = User.query.filter_by(email=user_email).first()
+        # Check if user has permission to approve
+        if not current_user or current_user.role.name.lower() not in ['admin', 'advisor', 'chair', 'dean']:
+            flash('You do not have permission to approve requests.', 'danger')
+            return redirect(url_for('index'))
         
-        if not current_user:
-            flash('User not found. Please log in again.', 'danger')
-            return redirect(url_for('login'))
-        
-        approval = RequestApproval.query.get(approval_id)
-        if not approval:
-            flash('Approval request not found.', 'danger')
-            return redirect(url_for('pending_approvals'))
-        
-        # Check role vs. step requirement
-        approver_role = approval.step.approver_role
-        can_approve = False
-        if current_user.role.name == 'admin':
-            can_approve = True
-        elif approver_role and current_user.role.name == approver_role.name:
-            can_approve = True
-        elif current_user.role_id == approval.step.approver_role_id:
-            can_approve = True
-            
-        if not can_approve:
-            role_required = approver_role.name if approver_role else "Unknown"
-            flash(f'You do not have permission to approve this request. Required role: {role_required}', 'danger')
-            return redirect(url_for('pending_approvals'))
-        
-        if approval.status != 'pending' and approval.request.status != 'submitted':
-            flash('This request has already been processed or is not in an approvable status.', 'warning')
+        # Check if this is the current user's turn to approve
+        if approval.status != 'pending':
+            flash('This request has already been processed.', 'warning')
             return redirect(url_for('pending_approvals'))
         
         if flask_request.method == 'POST':
@@ -141,6 +146,11 @@ def setup_approval_routes(app):
             comments = flask_request.form.get('comments', '')
             
             if action == 'approve':
+                # Check if approver has a signature
+                if not current_user.signature_path:
+                    flash('Please upload your signature before approving requests.', 'warning')
+                    return redirect(url_for('upload_signature'))
+                
                 approval.status = 'approved'
                 approval.comments = comments
                 approval.approver_id = current_user.id
@@ -148,17 +158,18 @@ def setup_approval_routes(app):
                 
                 db.session.commit()
                 
-                # Decide which PDF generation function to call based on request type
-                req_obj = approval.request
-                req_type = req_obj.request_type.name
-                
-                if req_type == 'RCL':
-                    pdf_path, error = generate_rcl_pdf(req_obj.id)
-                elif req_type == 'Withdrawal':
-                    pdf_path, error = generate_withdrawal_pdf(req_obj.id)
+                # Generate PDF with all signatures up to this point
+                request_type = approval.request.request_type.name.lower()
+                if request_type == 'withdrawal':
+                    pdf_filename, error = generate_withdrawal_pdf(approval.request.id)
+                elif request_type == 'rcl':
+                    pdf_filename, error = generate_rcl_pdf(approval.request.id)
                 else:
-                    # Fallback to the generic approach
                     pdf_path, error = generate_pdf_for_approval(approval.id)
+                    if not error:
+                        pdf_filename = os.path.basename(pdf_path)
+                    else:
+                        pdf_filename = None
                 
                 if error:
                     flash(f"PDF generation error: {error}", "danger")
@@ -178,32 +189,35 @@ def setup_approval_routes(app):
                     flash('Request has been fully approved!', 'success')
                 else:
                     flash('Request approved and moved to next approval step!', 'success')
-
+                
             elif action == 'reject':
                 approval.status = 'rejected'
                 approval.comments = comments
                 approval.approver_id = current_user.id
-                approval.approved_at = db.func.current_timestamp()
+                approval.rejected_at = db.func.current_timestamp()
+                
+                # Update request status
                 approval.request.status = 'rejected'
+                
                 db.session.commit()
                 flash('Request has been rejected.', 'warning')
-
+                
             elif action == 'return':
                 approval.status = 'returned'
                 approval.comments = comments
                 approval.approver_id = current_user.id
-                approval.approved_at = db.func.current_timestamp()
-                approval.request.status = 'returned'
-                db.session.commit()
+                approval.returned_at = db.func.current_timestamp()
                 
-                flash('Request has been returned to the requester for more information.', 'info')
+                # Update request status
+                approval.request.status = 'returned'
+                
+                db.session.commit()
+                flash('Request has been returned for revision.', 'info')
             
             return redirect(url_for('pending_approvals'))
         
-        # GET request
-        request_data = approval.request
-        form_data = request_data.form_data
-        return render_template('request_approval.html', approval=approval, request=request_data, form_data=form_data)
+        # GET request - show the approval form
+        return render_template('request_approval.html', approval=approval)
 
     @app.route('/approval_management')
     @active_required
@@ -282,24 +296,30 @@ def setup_approval_routes(app):
 
 def generate_rcl_pdf(request_id):
     """
-    Generate a PDF specifically for an RCL request by using a specialized LaTeX template.
-    Always uses the latest form data from the database.
+    Generate a PDF for an RCL request using a LaTeX template.
     Returns (pdf_filename, error_message).
     """
-    from models import Request
+    from models import Request, RequestApproval, ApprovalStep
     req = Request.query.get(request_id)
     if not req:
         return None, "Request not found for RCL PDF generation."
 
+    # Get all approvals for this request in order
+    approvals = RequestApproval.query.join(ApprovalStep).filter(
+        RequestApproval.request_id == request_id
+    ).order_by(ApprovalStep.step_order).all()
+
+    if not approvals:
+        return None, "No approval records found for RCL PDF generation."
+
     # Create necessary directories
-    uploads_dir = os.path.join(current_app.root_path, "uploads")
+    uploads_dir = os.path.join(current_app.root_path, "static", "uploads")
     pdf_dir = os.path.join(current_app.root_path, "pdf")
     os.makedirs(uploads_dir, exist_ok=True)
     os.makedirs(pdf_dir, exist_ok=True)
 
     # Get the latest form data
     form_data = req.form_data or {}
-    print("DEBUG: Latest form data:", form_data)  # Debug print
     
     # Extract RCL-specific fields with proper fallbacks
     full_name = req.requester.full_name if req.requester else "Unknown"
@@ -357,19 +377,89 @@ def generate_rcl_pdf(request_id):
     # Get letter attachment status
     letter_attached = "Yes" if form_data.get("letter_attached") is True else "No"
     
-    # Get signature date
+    # Get signature date and path
     signature_date = form_data.get("signature_date", str(datetime.now().date()))
+    signature_path = req.requester.signature_path if req.requester else None
+    
+    # Initialize approver information
+    advisor_signature = ""
+    advisor_name = "Not Yet Approved"
+    advisor_date = ""
+    advisor_comments = ""
+    
+    chair_signature = ""
+    chair_name = "Not Yet Approved"
+    chair_date = ""
+    chair_comments = ""
+    
+    dean_signature = ""
+    dean_name = "Not Yet Approved"
+    dean_date = ""
+    dean_comments = ""
+    
+    # Helper function to copy signature to PDF directory
+    def copy_signature_to_pdf_dir(sig_path):
+        if not sig_path:
+            return
+        src_path = os.path.join(uploads_dir, sig_path)
+        if os.path.exists(src_path):
+            try:
+                import shutil
+                shutil.copy2(src_path, os.path.join(pdf_dir, sig_path))
+            except Exception as e:
+                current_app.logger.warning(f"Could not copy signature file: {e}")
+    
+    # Process approvals to get signature information
+    for approval in approvals:
+        role = approval.step.approver_role.name if approval.step.approver_role else ""
+        
+        if role == 'advisor':
+            if approval.status == 'approved' and approval.approver:
+                advisor_signature = approval.approver.signature_path or ""
+                advisor_name = approval.approver.full_name
+                advisor_date = approval.approved_at.strftime("%Y-%m-%d") if approval.approved_at else ""
+                advisor_comments = approval.comments or ""
+                copy_signature_to_pdf_dir(advisor_signature)
+        
+        elif role == 'chair':
+            if approval.status == 'approved' and approval.approver:
+                chair_signature = approval.approver.signature_path or ""
+                chair_name = approval.approver.full_name
+                chair_date = approval.approved_at.strftime("%Y-%m-%d") if approval.approved_at else ""
+                chair_comments = approval.comments or ""
+                copy_signature_to_pdf_dir(chair_signature)
+        
+        elif role == 'dean':
+            if approval.status == 'approved' and approval.approver:
+                dean_signature = approval.approver.signature_path or ""
+                dean_name = approval.approver.full_name
+                dean_date = approval.approved_at.strftime("%Y-%m-%d") if approval.approved_at else ""
+                dean_comments = approval.comments or ""
+                copy_signature_to_pdf_dir(dean_signature)
 
-    print("DEBUG: Extracted fields:")  # Debug print
-    print(f"  full_name: {full_name}")
-    print(f"  ps_id: {ps_id}")
-    print(f"  semester: {semester}")
-    print(f"  year: {year}")
-    print(f"  reason: {reason}")
-    print(f"  courses: {courses_str}")
-    print(f"  remaining_hours: {remaining_hours}")
-    print(f"  letter_attached: {letter_attached}")
-    print(f"  signature_date: {signature_date}")
+    # Copy student signature if it exists
+    if signature_path:
+        copy_signature_to_pdf_dir(signature_path)
+        # Make sure we use a fully qualified path for LaTeX
+        signature_path = "./".join(signature_path.rsplit("/", 1) if "/" in signature_path else ("", signature_path))
+    else:
+        signature_path = "non_existent_file.png"  # Use a non-existent file for IfFileExists to skip
+        
+    # Ensure signature paths are properly formatted for LaTeX IfFileExists command
+    if advisor_signature and advisor_signature.strip():
+        advisor_signature = "./".join(advisor_signature.rsplit("/", 1) if "/" in advisor_signature else ("", advisor_signature))
+    else:
+        advisor_signature = "non_existent_file.png"
+        
+    if chair_signature and chair_signature.strip():
+        chair_signature = "./".join(chair_signature.rsplit("/", 1) if "/" in chair_signature else ("", chair_signature))
+    else:
+        chair_signature = "non_existent_file.png"
+        
+    if dean_signature and dean_signature.strip():
+        dean_signature = "./".join(dean_signature.rsplit("/", 1) if "/" in dean_signature else ("", dean_signature))
+    else:
+        dean_signature = "non_existent_file.png"
 
     template_path = os.path.join(pdf_dir, "rcl_template.tex")
 
@@ -412,6 +502,19 @@ def generate_rcl_pdf(request_id):
         .replace("{{remainingHours}}", escape_latex(remaining_hours))
         .replace("{{letterAttached}}", escape_latex(letter_attached))
         .replace("{{signatureDate}}", escape_latex(signature_date))
+        .replace("{{studentSignature}}", signature_path if signature_path else "")
+        .replace("{{advisorSignature}}", advisor_signature if advisor_signature else "")
+        .replace("{{advisorName}}", escape_latex(advisor_name))
+        .replace("{{advisorDate}}", escape_latex(advisor_date))
+        .replace("{{advisorComments}}", escape_latex(advisor_comments))
+        .replace("{{chairSignature}}", chair_signature if chair_signature else "")
+        .replace("{{chairName}}", escape_latex(chair_name))
+        .replace("{{chairDate}}", escape_latex(chair_date))
+        .replace("{{chairComments}}", escape_latex(chair_comments))
+        .replace("{{deanSignature}}", dean_signature if dean_signature else "")
+        .replace("{{deanName}}", escape_latex(dean_name))
+        .replace("{{deanDate}}", escape_latex(dean_date))
+        .replace("{{deanComments}}", escape_latex(dean_comments))
     )
 
     # Write filled template
@@ -442,6 +545,14 @@ def generate_rcl_pdf(request_id):
     except Exception as e:
         return None, f"Subprocess error: {e}"
 
+    # Clean up copied signature files
+    for sig_path in [signature_path, advisor_signature, chair_signature, dean_signature]:
+        if sig_path and sig_path != "non_existent_file.png":
+            try:
+                os.remove(os.path.join(pdf_dir, sig_path))
+            except Exception as e:
+                print(f"Warning: Could not remove temporary signature file: {e}")
+
     generated_pdf_path = os.path.join(pdf_dir, "document.pdf")
     if not os.path.exists(generated_pdf_path):
         return None, "document.pdf not found after RCL PDF generation."
@@ -450,7 +561,22 @@ def generate_rcl_pdf(request_id):
     final_pdf_path = os.path.join(pdf_dir, new_filename)
     os.rename(generated_pdf_path, final_pdf_path)
 
-    # Update the request with the new filename
+    # Update all approval records with the new filename
+    for approval in approvals:
+        if approval.status == 'approved':
+            approval.pdf_path = new_filename
+    db.session.commit()
+
+    # Get the latest approval to update specifically
+    latest_approval = RequestApproval.query.join(ApprovalStep).filter(
+        RequestApproval.request_id == request_id
+    ).order_by(ApprovalStep.step_order.desc()).first()
+    
+    if latest_approval:
+        latest_approval.pdf_path = new_filename
+        db.session.commit()
+
+    # Also update the request's final document path
     req.final_document_path = new_filename
     db.session.commit()
 
@@ -461,20 +587,27 @@ def generate_withdrawal_pdf(request_id):
     Generate a PDF for a withdrawal request using a LaTeX template.
     Returns (pdf_filename, error_message).
     """
-    from models import Request
+    from models import Request, RequestApproval, ApprovalStep
     req = Request.query.get(request_id)
     if not req:
         return None, "Request not found for withdrawal PDF generation."
 
+    # Get all approvals for this request in order
+    approvals = RequestApproval.query.join(ApprovalStep).filter(
+        RequestApproval.request_id == request_id
+    ).order_by(ApprovalStep.step_order).all()
+
+    if not approvals:
+        return None, "No approval records found for withdrawal PDF generation."
+
     # Create necessary directories
-    uploads_dir = os.path.join(current_app.root_path, "uploads")
+    uploads_dir = os.path.join(current_app.root_path, "static", "uploads")
     pdf_dir = os.path.join(current_app.root_path, "pdf")
     os.makedirs(uploads_dir, exist_ok=True)
     os.makedirs(pdf_dir, exist_ok=True)
 
     # Get the latest form data
     form_data = req.form_data or {}
-    print("DEBUG: Latest form data:", form_data)  # Debug print
     
     # Extract withdrawal-specific fields with proper fallbacks
     full_name = req.requester.full_name if req.requester else "Unknown"
@@ -488,7 +621,7 @@ def generate_withdrawal_pdf(request_id):
     
     # Get withdrawal details
     term_year = form_data.get("termYear", "")
-    reason = form_data.get("reason", "Not specified")
+    reason = form_data.get("reason", "")
     last_date_attended = form_data.get("lastDateAttended", "")
     financial_assistance = "Yes" if form_data.get("financialAssistance") else "No"
     student_health_insurance = "Yes" if form_data.get("studentHealthInsurance") else "No"
@@ -505,19 +638,95 @@ def generate_withdrawal_pdf(request_id):
     # Get additional comments
     additional_comments = form_data.get("additionalComments", "")
     
-    # Get signature date
+    # Get student signature info
     signature_date = form_data.get("signature_date", str(datetime.now().date()))
+    signature_path = form_data.get("signature_path")
 
-    print("DEBUG: Extracted fields:")  # Debug print
-    print(f"  full_name: {full_name}")
-    print(f"  ps_id: {ps_id}")
-    print(f"  college: {college}")
-    print(f"  plan_degree: {plan_degree}")
-    print(f"  term_year: {term_year}")
-    print(f"  reason: {reason}")
-    print(f"  courses: {courses}")
-    print(f"  withdrawal_type: {withdrawal_type}")
-    print(f"  signature_date: {signature_date}")
+    # Initialize approver information
+    advisor_signature = ""
+    advisor_name = "Pending"
+    advisor_date = ""
+    advisor_comments = ""
+    
+    chair_signature = ""
+    chair_name = "Pending"
+    chair_date = ""
+    chair_comments = ""
+    
+    dean_signature = ""
+    dean_name = "Pending"
+    dean_date = ""
+    dean_comments = ""
+
+    # Helper function to copy signature to PDF directory
+    def copy_signature_to_pdf_dir(sig_path):
+        if sig_path:
+            src_path = os.path.join(uploads_dir, sig_path)
+            if os.path.exists(src_path):
+                try:
+                    import shutil
+                    dest_path = os.path.join(pdf_dir, sig_path)
+                    shutil.copy2(src_path, dest_path)
+                    return sig_path
+                except Exception as e:
+                    print(f"Warning: Could not copy signature file: {e}")
+        return None
+
+    # Process each approval to get signatures up to the current step
+    current_step = None
+    for approval in approvals:
+        role = approval.step.approver_role.name if approval.step.approver_role else ""
+        
+        if role == 'advisor':
+            if approval.status == 'approved' and approval.approver:
+                advisor_signature = approval.approver.signature_path or ""
+                advisor_name = approval.approver.full_name
+                advisor_date = approval.approved_at.strftime("%Y-%m-%d") if approval.approved_at else ""
+                advisor_comments = approval.comments or ""
+                copy_signature_to_pdf_dir(advisor_signature)
+            current_step = 'advisor'
+        
+        elif role == 'chair':
+            if approval.status == 'approved' and approval.approver:
+                chair_signature = approval.approver.signature_path or ""
+                chair_name = approval.approver.full_name
+                chair_date = approval.approved_at.strftime("%Y-%m-%d") if approval.approved_at else ""
+                chair_comments = approval.comments or ""
+                copy_signature_to_pdf_dir(chair_signature)
+            current_step = 'chair'
+        
+        elif role == 'dean':
+            if approval.status == 'approved' and approval.approver:
+                dean_signature = approval.approver.signature_path or ""
+                dean_name = approval.approver.full_name
+                dean_date = approval.approved_at.strftime("%Y-%m-%d") if approval.approved_at else ""
+                dean_comments = approval.comments or ""
+                copy_signature_to_pdf_dir(dean_signature)
+            current_step = 'dean'
+
+    # Copy student signature if it exists
+    if signature_path:
+        copy_signature_to_pdf_dir(signature_path)
+        # Make sure we use a fully qualified path for LaTeX
+        signature_path = "./".join(signature_path.rsplit("/", 1) if "/" in signature_path else ("", signature_path))
+    else:
+        signature_path = "non_existent_file.png"  # Use a non-existent file for IfFileExists to skip
+        
+    # Ensure signature paths are properly formatted for LaTeX IfFileExists command
+    if advisor_signature and advisor_signature.strip():
+        advisor_signature = "./".join(advisor_signature.rsplit("/", 1) if "/" in advisor_signature else ("", advisor_signature))
+    else:
+        advisor_signature = "non_existent_file.png"
+        
+    if chair_signature and chair_signature.strip():
+        chair_signature = "./".join(chair_signature.rsplit("/", 1) if "/" in chair_signature else ("", chair_signature))
+    else:
+        chair_signature = "non_existent_file.png"
+        
+    if dean_signature and dean_signature.strip():
+        dean_signature = "./".join(dean_signature.rsplit("/", 1) if "/" in dean_signature else ("", dean_signature))
+    else:
+        dean_signature = "non_existent_file.png"
 
     template_path = os.path.join(pdf_dir, "withdrawal_template.tex")
 
@@ -555,6 +764,8 @@ def generate_withdrawal_pdf(request_id):
         .replace("{{psId}}", escape_latex(ps_id))
         .replace("{{college}}", escape_latex(college))
         .replace("{{planDegree}}", escape_latex(plan_degree))
+        .replace("{{address}}", escape_latex(address))
+        .replace("{{phone}}", escape_latex(phone))
         .replace("{{termYear}}", escape_latex(term_year))
         .replace("{{reason}}", escape_latex(reason))
         .replace("{{courses}}", escape_latex(courses))
@@ -567,6 +778,19 @@ def generate_withdrawal_pdf(request_id):
         .replace("{{giBillBenefits}}", escape_latex(gi_bill_benefits))
         .replace("{{additionalComments}}", escape_latex(additional_comments))
         .replace("{{signatureDate}}", escape_latex(signature_date))
+        .replace("{{studentSignature}}", signature_path if signature_path else "")
+        .replace("{{advisorSignature}}", advisor_signature if advisor_signature else "")
+        .replace("{{advisorName}}", escape_latex(advisor_name))
+        .replace("{{advisorDate}}", escape_latex(advisor_date))
+        .replace("{{advisorComments}}", escape_latex(advisor_comments))
+        .replace("{{chairSignature}}", chair_signature if chair_signature else "")
+        .replace("{{chairName}}", escape_latex(chair_name))
+        .replace("{{chairDate}}", escape_latex(chair_date))
+        .replace("{{chairComments}}", escape_latex(chair_comments))
+        .replace("{{deanSignature}}", dean_signature if dean_signature else "")
+        .replace("{{deanName}}", escape_latex(dean_name))
+        .replace("{{deanDate}}", escape_latex(dean_date))
+        .replace("{{deanComments}}", escape_latex(dean_comments))
     )
 
     # Write filled template
@@ -597,6 +821,14 @@ def generate_withdrawal_pdf(request_id):
     except Exception as e:
         return None, f"Subprocess error: {e}"
 
+    # Clean up copied signature files
+    for sig_path in [signature_path, advisor_signature, chair_signature, dean_signature]:
+        if sig_path:
+            try:
+                os.remove(os.path.join(pdf_dir, sig_path))
+            except Exception as e:
+                print(f"Warning: Could not remove temporary signature file: {e}")
+
     generated_pdf_path = os.path.join(pdf_dir, "document.pdf")
     if not os.path.exists(generated_pdf_path):
         return None, "document.pdf not found after withdrawal PDF generation."
@@ -605,7 +837,22 @@ def generate_withdrawal_pdf(request_id):
     final_pdf_path = os.path.join(pdf_dir, new_filename)
     os.rename(generated_pdf_path, final_pdf_path)
 
-    # Update the request with the new filename
+    # Update all approval records with the new filename
+    for approval in approvals:
+        if approval.status == 'approved':
+            approval.pdf_path = new_filename
+    db.session.commit()
+
+    # Get the latest approval to update specifically
+    latest_approval = RequestApproval.query.join(ApprovalStep).filter(
+        RequestApproval.request_id == request_id
+    ).order_by(ApprovalStep.step_order.desc()).first()
+    
+    if latest_approval:
+        latest_approval.pdf_path = new_filename
+        db.session.commit()
+
+    # Also update the request's final document path
     req.final_document_path = new_filename
     db.session.commit()
 
